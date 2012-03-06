@@ -82,7 +82,7 @@ class WikiSyncDao(object):
         sync_time = time.time()
         @self.env.with_transaction()
         def execute(db):
-            processed = []
+            processed = set()
             for data in dataset:
                 name = data.get("name", None)
                 item = self.find(name)
@@ -96,17 +96,21 @@ class WikiSyncDao(object):
                             item = item.merge(ignore=1)
                     item = item.merge(sync_time=sync_time, **data)
                     self.update(item)
-                processed.append(name)
+                processed.add(name)
             if processed:
-                sql = """
-                    SELECT name FROM wikisync WHERE name NOT IN ('%s')
-                """ % "','".join(processed)
                 cursor = db.cursor()
-                cursor.execute(sql)
-                for row in cursor.fetchall():
-                    item = self.find(row[0])
+                cursor.execute("SELECT name FROM wikisync")
+                current = set([row[0] for row in cursor.fetchall()])
+                for name in (current - processed):
+                    item = self.find(name)
                     if not item.local_version:
                         self.delete(item)
+                    else:
+                        item = item.merge(
+                            remote_version=None,
+                            sync_remote_version=None,
+                        )
+                        self.update(item)
 
     def factory(self, **kwargs):
         return _default_wikisync.merge(**kwargs)
