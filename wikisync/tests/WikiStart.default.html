@@ -1,0 +1,147 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  
+  
+
+
+  <head>
+    <title>
+      Wikisync
+    </title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <!--[if IE]><script type="text/javascript">window.location.hash = window.location.hash;</script><![endif]-->
+        <link rel="search" href="/trac/search" />
+        <link rel="help" href="/trac/wiki/TracGuide" />
+        <link rel="alternate" href="/trac/wiki/WikiStart?format=txt" type="text/x-trac-wiki" title="Plain Text" />
+        <link rel="start" href="/trac/wiki" />
+        <link rel="stylesheet" href="/trac/chrome/common/css/trac.css" type="text/css" /><link rel="stylesheet" href="/trac/chrome/common/css/wiki.css" type="text/css" />
+        <link rel="shortcut icon" href="/trac/chrome/common/trac.ico" type="image/x-icon" />
+        <link rel="icon" href="/trac/chrome/common/trac.ico" type="image/x-icon" />
+      <link type="application/opensearchdescription+xml" rel="search" href="/trac/search/opensearch" title="Search Wikisync" />
+    <script type="text/javascript" src="/trac/chrome/common/js/jquery.js"></script><script type="text/javascript" src="/trac/chrome/common/js/babel.js"></script><script type="text/javascript" src="/trac/chrome/common/js/trac.js"></script><script type="text/javascript" src="/trac/chrome/common/js/search.js"></script><script type="text/javascript" src="/trac/chrome/common/js/folding.js"></script>
+    <!--[if lt IE 7]>
+    <script type="text/javascript" src="/trac/chrome/common/js/ie_pre7_hacks.js"></script>
+    <![endif]-->
+    <script type="text/javascript">
+      jQuery(document).ready(function($) {
+        $("#content").find("h1,h2,h3,h4,h5,h6").addAnchor(_("Link to this section"));
+        $("#content").find(".wikianchor").each(function() {
+          $(this).addAnchor(babel.format(_("Link to #%(id)s"), {id: $(this).attr('id')}));
+        });
+        $(".foldable").enableFolding(true, true);
+      });
+    </script>
+  </head>
+  <body>
+    <div id="banner">
+      <div id="header">
+        <a id="logo" href="/trac/wiki/TracIni#header_logo-section"><img src="/trac/chrome/site/your_project_logo.png" alt="(please configure the [header_logo] section in trac.ini)" /></a>
+      </div>
+      <form id="search" action="/trac/search" method="get">
+        <div>
+          <label for="proj-search">Search:</label>
+          <input type="text" id="proj-search" name="q" size="18" value="" />
+          <input type="submit" value="Search" />
+        </div>
+      </form>
+      <div id="metanav" class="nav">
+    <ul>
+      <li class="first"><a href="/trac/login">Login</a></li><li><a href="/trac/prefs">Preferences</a></li><li><a href="/trac/wiki/TracGuide">Help/Guide</a></li><li class="last"><a href="/trac/about">About Trac</a></li>
+    </ul>
+  </div>
+    </div>
+    <div id="mainnav" class="nav">
+    <ul>
+      <li class="first active"><a href="/trac/wiki">Wiki</a></li><li><a href="/trac/timeline">Timeline</a></li><li><a href="/trac/roadmap">Roadmap</a></li><li><a href="/trac/report">View Tickets</a></li><li><a href="/trac/search">Search</a></li><li class="last"><a href="/trac/wikisync">WikiSync</a></li>
+    </ul>
+  </div>
+    <div id="main">
+      <div id="pagepath" class="noprint">
+  <a class="pathentry first" title="View WikiStart" href="/trac/wiki">wiki:</a><a class="pathentry" href="/trac/wiki/WikiStart" title="View WikiStart">WikiStart</a>
+</div>
+      <div id="ctxtnav" class="nav">
+        <h2>Context Navigation</h2>
+          <ul>
+              <li class="first"><a href="/trac/wiki/WikiStart">Start Page</a></li><li><a href="/trac/wiki/TitleIndex">Index</a></li><li><a href="/trac/wiki/WikiStart?action=history">History</a></li><li class="last"><a href="/trac/wiki/WikiSync">WikiSync Page</a></li>
+          </ul>
+        <hr />
+      </div>
+    <div id="content" class="wiki">
+      <div class="wikipage searchable">
+        
+          
+          <div class="trac-modifiedby">
+            <span><a href="/trac/wiki/WikiStart?action=diff&amp;version=2" title="Version 2 by admin">Last modified</a> <a class="timeline" href="/trac/timeline?from=2012-02-28T14%3A56%3A39%2B08%3A00&amp;precision=second" title="2012-02-28T14:56:39+08:00 in Timeline">7 hours</a> ago</span>
+            <span class="trac-print">Last modified on 02/28/12 14:56:39</span>
+          </div>
+          <div id="wikipage"><h1 id="WelcometoTrac0.12.3">Welcome to Trac 0.12.3</h1>
+<p>
+x
+</p>
+<p>
+Trac is a <strong>minimalistic</strong> approach to <strong>web-based</strong> management of
+<strong>software projects</strong>. Its goal is to simplify effective tracking and handling of software issues, enhancements and overall progress.
+</p>
+<p>
+All aspects of Trac have been designed with the single goal to 
+<strong>help developers write great software</strong> while <strong>staying out of the way</strong>
+and imposing as little as possible on a team's established process and
+culture.
+</p>
+<p>
+As all Wiki pages, this page is editable, this means that you can
+modify the contents of this page simply by using your
+web-browser. Simply click on the "Edit this page" link at the bottom
+of the page. <a class="wiki" href="/trac/wiki/WikiFormatting">WikiFormatting</a> will give you a detailed description of
+available Wiki formatting commands.
+</p>
+<p>
+"<a class="wiki" href="/trac/wiki/TracAdmin">trac-admin</a> <em>yourenvdir</em> initenv" created
+a new Trac environment, containing a default set of wiki pages and some sample
+data. This newly created environment also contains 
+<a class="wiki" href="/trac/wiki/TracGuide">documentation</a> to help you get started with your project.
+</p>
+<p>
+You can use <a class="wiki" href="/trac/wiki/TracAdmin">trac-admin</a> to configure
+<a class="ext-link" href="http://trac.edgewall.org/"><span class="icon">​</span>Trac</a> to better fit your project, especially in
+regard to <em>components</em>, <em>versions</em> and <em>milestones</em>. 
+</p>
+<p>
+<a class="wiki" href="/trac/wiki/TracGuide">TracGuide</a> is a good place to start.
+</p>
+<p>
+Enjoy! <br />
+<em>The Trac Team</em>
+</p>
+<h2 id="StartingPoints">Starting Points</h2>
+<ul><li><a class="wiki" href="/trac/wiki/TracGuide">TracGuide</a> --  Built-in Documentation
+</li><li><a class="ext-link" href="http://trac.edgewall.org/"><span class="icon">​</span>The Trac project</a> -- Trac Open Source Project
+</li><li><a class="ext-link" href="http://trac.edgewall.org/wiki/TracFaq"><span class="icon">​</span>Trac FAQ</a> -- Frequently Asked Questions
+</li><li><a class="wiki" href="/trac/wiki/TracSupport">TracSupport</a> --  Trac Support
+</li></ul><p>
+For a complete list of local wiki pages, see <a class="wiki" href="/trac/wiki/TitleIndex">TitleIndex</a>.
+</p>
+</div>
+        
+        
+      </div>
+      
+
+    </div>
+    <div id="altlinks">
+      <h3>Download in other formats:</h3>
+      <ul>
+        <li class="last first">
+          <a rel="nofollow" href="/trac/wiki/WikiStart?format=txt">Plain Text</a>
+        </li>
+      </ul>
+    </div>
+    </div>
+    <div id="footer" lang="en" xml:lang="en"><hr />
+      <a id="tracpowered" href="http://trac.edgewall.org/"><img src="/trac/chrome/common/trac_logo_mini.png" height="30" width="107" alt="Trac Powered" /></a>
+      <p class="left">Powered by <a href="/trac/about"><strong>Trac 0.12.3</strong></a><br />
+        By <a href="http://www.edgewall.org/">Edgewall Software</a>.</p>
+      <p class="right">Visit the Trac open source project at<br /><a href="http://trac.edgewall.org/">http://trac.edgewall.org/</a></p>
+    </div>
+  </body>
+</html>

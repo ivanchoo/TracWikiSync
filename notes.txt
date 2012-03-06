@@ -1,0 +1,46 @@
+(wikisync)Ivans-iMac:wikisync-plugin ivanchoo$ tracd -p 8000 --auth="trac,trac/.htpasswd,trac" trac
+(wikisync)Ivans-iMac:wikisync-plugin ivanchoo$ htdigest -c trac/.htpasswd trac admin
+
+tracd -p 8000 \
+  --auth="trac,trac/.htpasswd,trac" \
+  --auth="trac-target,trac-target/.htpasswd,trac-target" \
+  trac trac-target
+  
+
+
+[logging]
+log_file = trac.log
+# log_format = <inherited>
+log_level = DEBUG
+log_type = stderr
+
+
+Remote: Modified, Outdated, Added, Missing, Unknown
+
+
+Sync:
+ - Modified (local newer)
+ - Outdated (remote newer)
+ - Missing (local missing)
+ - New (remote missing)
+ - Conflict 
+ - Unknown
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

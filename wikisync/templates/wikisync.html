@@ -1,0 +1,97 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:py="http://genshi.edgewall.org/" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <xi:include href="layout.html" />
+  <?python
+    from wikisync.util import jsonify
+  ?>
+  <head>
+    <title>Wiki Synchronization</title>
+  </head>
+  <body>
+    <div id="ctxtnav" class="nav"></div>
+    <div id="wikisync" class="wikisync">
+      <h1>Wiki Synchronization</h1>
+      <form id="wikisync-controls" method="post">
+        <fieldset>
+					<legend>Synchronization Options</legend>
+					<ul>
+						<li class="modified">
+							<label for="filter-modified">
+								<input id="filter-modified" type="checkbox" checked="checked" value="modified" class="filter" />
+								Modified wiki will be posted to remote server
+							</label>
+						</li>
+						<li class="new">
+							<label for="filter-new">
+								<input id="filter-new" type="checkbox" checked="checked" value="new" class="filter" />
+								New wiki will be posted to remote server
+							</label>
+						</li>
+						<li class="outdated">
+							<label for="filter-outdated">
+								<input id="filter-outdated" type="checkbox" checked="checked" value="outdated" class="filter" />
+								Outdated wiki will be updated with newer version from remote server
+							</label>
+						</li>
+						<li class="missing">
+							<label for="filter-missing">
+								<input id="filter-missing" type="checkbox" checked="checked" value="missing" class="filter" />
+								Missing wiki will be updated with newer version from remote server
+							</label>
+						</li>
+						<li class="conflict">
+							<label for="filter-conflict">
+								<input id="filter-conflict" type="checkbox" checked="checked" value="conflict" class="filter" />
+								Conflict wiki will be resolved as
+							</label>							
+							<select id="filter-conflict-resolve" class="filter filter-resolve">
+								<option value="" selected="selected">per individual wiki option</option>
+								<option value="modified">Modified</option>
+								<option value="outdated">Outdated</option>
+							</select>
+						</li>
+						<li class="unknown">
+							<label for="filter-unknown">
+								<input id="filter-unknown" type="checkbox" checked="checked" value="modified" class="filter" />
+								Detect unknown wiki status
+							</label>
+						</li>
+						<li class="synced">
+							<label for="filter-synced">
+								<input id="filter-synced" type="checkbox" value="synced" class="filter" />
+								Reveal synchronized wiki
+							</label>
+						</li>
+						<li class="ignored">
+							<label for="filter-ignored">
+								<input id="filter-ignored" type="checkbox" value="ignored" class="filter"  />
+								Reveal ignored wiki
+							</label>
+						</li>
+					</ul>
+					<div style="padding-left:104px">
+					  <p class="action"><button class="submit">Start Synchronization</button> or <a href="${req.href.wikisync(action='refresh')}">Refresh Status</a></p>
+					  <p class="progress"><button class="submit">Stop Synchronization</button> <i>In progress..</i></p>
+					</div>
+        </fieldset>
+      </form>
+      <h2>Wiki Status</h2>
+      <ul id="wikisync-list"></ul>
+      <script type="text/javascript">
+        $(function() {
+        	var ns = wikisync;
+        	var app = new ns.WikiSyncView({
+        		el: '#wikisync',
+        		localUrl: '${local_url}',
+        		remoteUrl: '${remote_url}',
+        		collection: new ns.WikiSyncCollection(
+        			${jsonify(collection)}, 
+        			{ parse:true, url:'${endpoint}' }
+        		)
+        	}).render();
+        });
+      </script>
+    </div>
+  </body>
+</html>

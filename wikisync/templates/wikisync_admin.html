@@ -1,0 +1,49 @@
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:xi="http://www.w3.org/2001/XInclude"
+      xmlns:py="http://genshi.edgewall.org/">
+  <xi:include href="admin.html" />
+  <head>
+    <title>Wiki Synchronization</title>
+  </head>
+
+  <body>
+    <h2>Wiki Synchronization</h2>
+    <form class="mod" id="modwikisync" method="post" action="">
+      <fieldset>
+        <legend>Remote Wiki</legend>
+        <div class="field">
+          <label>URL:<br />
+            <input type="text" name="url" value="${data.url}" placeholder="http://host:port/project" size="60"  />
+          </label>
+        </div>
+        <div class="field">
+          <label>Login as (Optional): </label><br />
+          <input type="text" name="username" value="${data.username}" placeholder="username" size="28" /> : 
+          <input type="password" name="password" value="${data.password}" placeholder="password" size="28" />
+          <p><a href="#">Test connection</a></p>
+          <p class="help">
+            Blah blah blah
+          </p>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Advance Options</legend>
+        <div class="field">
+          <label>Ignore wiki paths:<br />
+            <textarea name="ignorelist" class="trac-resizable" rows="6" cols="60">${data.ignorelist}</textarea>
+          </label>
+          <p class="help">
+            Blah blah blah
+          </p>
+        </div>
+      </fieldset>
+      <div class="buttons">
+        <input type="submit" value="${_('Apply changes')}" />
+      </div>
+    </form>
+  </body>
+
+</html>
