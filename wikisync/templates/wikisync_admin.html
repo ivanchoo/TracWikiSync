@@ -23,7 +23,6 @@
           <label>Login as (Optional): </label><br />
           <input type="text" name="username" value="${data.username}" placeholder="username" size="28" /> : 
           <input type="password" name="password" value="${data.password}" placeholder="password" size="28" />
-          <p><a href="#">Test connection</a></p>
           <p class="help">
             Blah blah blah
           </p>
@@ -40,9 +39,10 @@
           </p>
         </div>
       </fieldset>
-      <div class="buttons">
-        <input type="submit" value="${_('Apply changes')}" />
-      </div>
+      <p>
+        <input type="submit" value="${_('Apply changes')}" /> 
+        or <a href="${req.href.wikisync(action='refresh')}">Refresh Synchronization Status</a>
+      </p>
     </form>
   </body>
 
