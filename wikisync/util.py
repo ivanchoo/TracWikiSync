@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-import zlib, base64, md5, os, tempfile, cookielib, urllib2, \
+import zlib, base64, os, tempfile, cookielib, urllib2, \
     urllib, itertools, re
+from hashlib import md5
 from StringIO import StringIO
 from genshi.input import HTMLParser
 from urlparse import urlparse, parse_qs
@@ -13,7 +14,7 @@ def jsonify(obj):
     """Returns a jsonified string"""
     return json.dumps(obj)
         
-def safe_unicode(obj, encoding='utf-8'):
+def safe_unicode(obj, encoding="utf-8"):
     t = type(obj)
     if t is unicode:
         return obj
@@ -149,7 +150,7 @@ def _parse_html_version_links(source, check_data, path_prefix):
                     path = safe_unicode(
                         urllib.unquote(
                             safe_str(url.path[path_prefix_len:])
-                        ).decode('utf-8')
+                        ).decode("utf-8")
                     )
                     if path in map:
                         item = map[path]
@@ -199,26 +200,33 @@ class WikiSyncRpc(object):
         self._opener = None
         self._authenticated = False
     
-    def open(self, path, data=None):
+    def open(self, path, data=None, method="GET"):
         self.authenticate()
-        req = urllib2.Request(self.url(path))
+        url = self.url(path)
+        qs = data and safe_urlencode(data) or None
         try:
-            if data:
-                data = safe_urlencode(data)
-            return self.opener().open(req, data)
-        except HTTPError, e:
+            if qs and method == "GET":
+                url = "%s?%s" % (url, qs)
+                qs = None
+            req = urllib2.Request(url)
+            return self.opener().open(req, qs)
+        except urllib2.HTTPError, e:
             if e.code in (401,):
                 self.authenticate()
                 return self.opener().open(req, data)
+            else:
+                raise e
                 
-    def opener(self):
+    def opener(self, no_cache=False):
         if not self._opener:
-            m = md5.new()
+            m = md5()
             m.update(self.baseurl)
             m.update(self.username or "username")
             m.update(self.password or "password")
             hash = m.hexdigest()
             cookie_file = os.path.join(tempfile.gettempdir(), hash)
+            if no_cache and os.path.isfile(cookie_file):
+                os.remove(cookie_file)
             has_cookie = os.path.isfile(cookie_file)
             cookie_jar = cookielib.LWPCookieJar(cookie_file)
             handlers = [urllib2.HTTPCookieProcessor(cookie_jar)]
@@ -243,7 +251,12 @@ class WikiSyncRpc(object):
         self.save_cookie()
         self._cookie_jar = None
         self._opener = None
-
+    
+    def test(self):
+        self.close()
+        self.opener(no_cache=True)
+        return self.open("wiki")
+        
     def authenticate(self):
         opener = self.opener()
         if self._require_authentication:
@@ -262,7 +275,7 @@ class WikiSyncRpc(object):
     def url(self, path=""):
         if path.startswith("/"):
             path = path[1:]
-        return "%s/%s" % (self.baseurl, path)
+        return "%s/%s" % (self.baseurl, urllib.quote(path.encode("utf-8")))
     
     def basepath(self, path=""):
         return urlparse(self.url(path)).path
@@ -275,32 +288,34 @@ class WikiSyncRpc(object):
         data = {
             "wiki": "on",
         }
-        url = "timeline?%s" % safe_urlencode(data)
         return parse_timeline(
-            self.open(url), self.basepath("wiki"))
+            self.open("timeline", data, "GET"), self.basepath("wiki"))
     
     def get_remote_version(self, name):
         return parse_wiki(
             self.open("wiki/%s" % name), self.basepath("wiki"))
         
     def pull_wiki(self, name, version=None):
-        path = "wiki/%s?format=txt" % name
+        data = { "format":"txt" }
         if version:
-            path = "%s&version=%s" % (path, version)
-        f = self.open(path)
+            data["version"] = version
+        f = self.open("wiki/%s" % name, data, "GET")
         return safe_unicode(f.read())
     
     def post_wiki(self, name, text, comments=None):
-        path = "wiki/%s?action=edit" % name
-        params = parse_form_params(self.open(path), 
-            form_id="edit", exclude=("cancel", "preview", "diff", "merge"))
+        data = { "action":"edit" }
+        params = parse_form_params(
+            self.open("wiki/%s" % name, data, "GET"), 
+            form_id="edit", 
+            exclude=("cancel", "preview", "diff", "merge")
+        )
         if not params:
             raise RuntimeError("Cannot parse form parameters from '%s'" % \
                 self.url(path))
         params["text"] = text
         params["comment"] = self._format_comment(comments)
         info = parse_wiki(
-            self.open("wiki/%s" % name, params),
+            self.open("wiki/%s" % name, params, "POST"),
             self.basepath("wiki")
         )
         if not info:
