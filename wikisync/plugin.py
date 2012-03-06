@@ -65,11 +65,18 @@ class WikiSyncMixin(object):
         try:
             self.config.save()
             if req:
-                add_notice(req,"Setting saved.")
+                add_notice(req,"Setting saved")
         except Exception, e:
             self.log.error("Error writing config: %s", e)
             if req:
                 add_warning(req, "Error writing configuration")
+
+    def _render_json(self, req, data):
+        payload = safe_str(jsonify(data))
+        req.send_header('Content-Type', 'text/json')
+        req.send_header('Content-Length', str(len(payload)))
+        req.end_headers()
+        req.write(payload)
 
 class WikiSyncEnvironment(Component, WikiSyncMixin):
     """WikiSync environment setup"""
@@ -137,14 +144,47 @@ class WikiSyncAdminPanel(Component, WikiSyncMixin):
         req.perm.require("TRAC_ADMIN")
         password_stud = "********"
         if req.method == "POST":
-            for key in ("url", "username", "password", "ignorelist"):
-                value = req.args.get(key)
-                if key == "password":
-                    if value == password_stud:
-                        continue
-                    value = str_mask(value)
-                self._set_config(key, value)
-            self._save_config(req)
+            remote_server_changed = False
+            url = req.args.get("url", "")
+            username = req.args.get("username", "")
+            password = req.args.get("password", "")
+            if password == password_stud:
+                password = self._get_config("password")
+            ignorelist = req.args.get("ignorelist", "")
+            is_error = False
+            server_info_changed = False
+            for key in ("url", "username", "password"):
+                if locals()[key] != self._get_config(key, ""):
+                    server_info_changed = True
+                    break
+            if server_info_changed and url:
+                # remote server info has changed, test connection
+                try:
+                    rpc = WikiSyncRpc(url, username, password, True)
+                    rpc.test()
+                except Exception, e:
+                    if hasattr(e, "code") and e.code == 401:
+                        add_warning(req, "Authentication failed, "
+                            "settings are not saved")
+                    else:
+                        add_warning(req, "Cannot connect to remote server, "
+                            "settings are not saved")
+                    is_error = True
+            if not is_error:
+                self._set_config("url", url)
+                self._set_config("username", username)
+                self._set_config("password", password)
+                self._set_config("ignorelist", ignorelist)
+                self._save_config(req)
+                if not url:
+                    add_warning(req, "Remote server not set, "
+                        "Wiki Sync is disabled")
+                elif not username or not password:
+                    add_warning(req, "No authentication will be performed "
+                        "when communicating with remote server")
+                else:
+                    add_notice(req, "Remember to refresh the "
+                        "synchronization status")
             req.redirect(req.href.admin(cat, page))
         password = self._get_config("password", "") and password_stud or ""
         data = {
@@ -286,11 +326,4 @@ class WikiSyncPlugin(Component, WikiSyncMixin):
                 "local_url": req.href.wiki(),
                 "remote_url": self._get_config("url"),
                 "endpoint": req.href.wikisync(),
-            }, None 
-
-    def _render_json(self, req, data):
-        payload = safe_str(jsonify(data))
-        req.send_header('Content-Type', 'text/json')
-        req.send_header('Content-Length', str(len(payload)))
-        req.end_headers()
-        req.write(payload)
+            }, None
