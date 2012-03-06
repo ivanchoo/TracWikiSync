@@ -299,7 +299,7 @@
 			return this;
 		},
 		renderTree: function() {
-			var filterKeys = {};
+			var filterKeys = { 'unknown':true };
 			this.$('input.filter').each(function() {
 				var el = $(this);
 				var val = $(this).val();
