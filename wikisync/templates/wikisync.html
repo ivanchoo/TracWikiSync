@@ -68,6 +68,11 @@
 								<input id="filter-ignored" type="checkbox" value="ignored" class="filter"  />
 								Reveal ignored wiki
 							</label>
+							<span class="controls-all">
+								<a href="#" class="unignore-all">✔✔ Unignore All</a>
+								<i> or </i>
+								<a href="#" class="ignore-all">✘✘ Ignore All</a>
+							</span>
 						</li>
 					</ul>
 					<div style="padding-left:104px">
@@ -86,7 +91,7 @@
         		localUrl: '${local_url}',
         		remoteUrl: '${remote_url}',
         		collection: new ns.WikiSyncCollection(
-        			${jsonify(collection)}, 
+        			${Markup(jsonify(collection))}, 
         			{ parse:true, url:'${endpoint}' }
         		)
         	}).render();

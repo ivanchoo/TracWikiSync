@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import time
-from wikisync.util import safe_int as safe_int
+from wikisync.util import safe_int
 from collections import namedtuple
 
 class WikiSync(namedtuple("WikiSync", [
@@ -10,39 +10,6 @@ class WikiSync(namedtuple("WikiSync", [
         ])):
     
     __slots__ = ()
-    
-    """
-    @property
-    def status(self):
-        rv = safe_int(self.remote_version)
-        lv = safe_int(self.local_version)
-        srv = safe_int(self.sync_remote_version)
-        slv = safe_int(self.sync_local_version)
-        st = safe_int(self.sync_time)
-        if self.ignore:
-            return "ignored"
-        elif not st:
-            # no known sync time
-            return "unknown"
-        elif rv and not lv:
-            # can't find local copy
-            return "missing"
-        elif lv and not rv:
-            # can't find remote copy
-            return "new"
-        elif rv > srv and lv > slv:
-            # both remote and local are out of sync
-            return "conflict"
-        elif rv > srv:
-            # local in-sync, but remote out of sync
-            return "outdated"
-        elif lv > slv:
-            # local out of sync, but remote in sync
-            return "modified"
-        elif rv == srv and lv == slv:
-            return "synced"
-        return "unknown"
-    """
     
     def merge(self, **kwargs):
         return self._replace(**kwargs)

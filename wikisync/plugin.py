@@ -34,46 +34,8 @@ Trac*
 Inter*
 (?!^WikiStart$)Wiki.*"""
 
-def wikisync_group_by_name(items, minsize_group=2):
-    flattened = []
-    for item in items:
-        path = [elt.strip() for elt in RE_SPLIT.split(
-            RE_NUM_SPLIT.sub(r" \1 ",
-                RE_SPLIT_CAMELCASE.sub(lambda m: m.group()[:1] + " " + m.group()[1:], item.name)
-            )
-        )]
-        flattened.append(([elt for elt in path if elt], item))
-    def tree_group(entries):
-        groups = []
-        for key, grouper in groupby(entries,
-            lambda (elts, item): elts and elts[0] or ""):
-            # remove key from path_elements in grouped entries for further
-            # grouping
-            grouped_entries = [(path_elements[1:], item)
-                               for path_elements, item in grouper]
-            if key and len(grouped_entries) >= minsize_group:
-                subnodes = tree_group(sorted(grouped_entries))
-                if len(subnodes) == 1:
-                    subkey, subnodes = subnodes[0]
-                    node = (key + subkey, subnodes)
-                    groups.append(node)
-                elif RE_SPLIT.match(key):
-                    for elt in subnodes:
-                        if isinstance(elt, tuple):
-                            subkey, subnodes = elt
-                            elt = (key + subkey, subnodes)
-                        groups.append(elt)
-                else:
-                    node = (key, subnodes)
-                    groups.append(node)                    
-            else:
-                for path_elements, item in grouped_entries:
-                    groups.append(item)
-        return groups
-    return tree_group(flattened)
-
 class WikiSyncMixin(object):
-    
+		
     def _get_dao(self):
         return WikiSyncDao(self.env)
     
@@ -149,7 +111,7 @@ class WikiSyncEnvironment(Component, WikiSyncMixin):
         dao.sync_wiki_data()
         if not self._get_config("ignorelist"):
             self._set_config("ignorelist", DEFAULT_IGNORELIST)
-            self._save_config(req)
+            self._save_config()
 
     def get_db_version(self, db=None):
         if not db:
@@ -208,9 +170,9 @@ class WikiSyncPlugin(Component, WikiSyncMixin):
         return "wikisync"
     
     def get_navigation_items(self, req):
-        # TODO: permission
-        yield ("mainnav", "wikisync",
-               tag.a("Wiki Sync", href=req.href.wikisync()))
+        if "WIKI_ADMIN" in req.perm:
+            yield ("mainnav", "wikisync",
+                   tag.a("Wiki Sync", href=req.href.wikisync()))
     
     # IRequestHandler methods
     def match_request(self, req):
@@ -225,14 +187,14 @@ class WikiSyncPlugin(Component, WikiSyncMixin):
     
     # ITemplateStreamFilter
     def filter_stream(self, req, method, filename, stream, data):
+        if "WIKI_ADMIN" in req.perm:
+            # TODO: Render individual page controls via add_ctxtnav
+            pass
         return stream
-        # TODO
-        """
-        if filename == "wiki_view.html":
-            add_ctxtnav(req, "WikiSync Page", req.href.wiki("WikiSync"))
-        return stream"""
         
     def process_request(self, req):
+        req.perm.require("WIKI_ADMIN")
+        redirect = False
         dao = self._get_dao()
         action = req.args.get("action")
         names = req.args.get("name")
@@ -254,6 +216,7 @@ class WikiSyncPlugin(Component, WikiSyncMixin):
                     ignore = self._get_ignore_filter()
                     results = rpc.get_remote_list()
                     dao.sync_remote_data(results, ignore)
+                    redirect = True
                 else:
                     assert items, "Missing items '%s'" % names
                 for item in items:
@@ -311,6 +274,8 @@ class WikiSyncPlugin(Component, WikiSyncMixin):
                rpc.close()
         if items:
             self._render_json(req, [dao.find(item.name) for item in items])
+        elif redirect:
+            req.redirect(req.href.wikisync())
         else:
             add_stylesheet(req, "wikisync/wikisync.css")
             add_script(req, "wikisync/underscore.js")

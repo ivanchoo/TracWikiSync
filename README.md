@@ -1,13 +1,12 @@
 TracWikiSync
 ============
 
-Introduction
-------------
 This [Trac](http://trac.edgewall.org/) plugin allows you to synchronize wiki entries between to separate Trac installations. 
 
 Common use case is be to install a local Trac project on your workstation and synchronizing the wiki entires from your remote Trac server. This is especially useful when working over slow VPN connections and/or working offline, editing the wikies and doing batch synchronizing when you're ready to commit.
 
-Some features are:
+Features
+------------
 
  - Supports the following type of synchronization:
  
@@ -33,42 +32,52 @@ Some features are:
 TODO
 ----
 
+ - Fix GUI to solve screen lock ups and show better progress status
+
+ - Implement quick filter for batch synchronization screen
+ 
+ - Implement refresh from last sync for faster status detection
+ 
  - Implement single wiki synchronization
  
  - Implement attachment synchronization
+ 
+ - Implement IWikiChangeListener to catch deleted and renamed wiki changes
 
 Installation and Requirements
 -----------------------------
+
+TODO
 
 Minimum requirements:
 
  - Trac 0.12 >=
  
  - Python 2.6 >=
- 
-### Per Trac Project ###
 
- 1. Via the Trac Admin > Plugins web interface or
- 
- 1. See http://trac.edgewall.org/wiki/TracPlugins#Forasingleproject
- 
-### For All Trac Projects ###
- 
- 1. http://trac.edgewall.org/wiki/TracPlugins#Forallprojects
- 
- 1. Enabling the plugin in `trac.ini`:<blockquote>
+ - Enabling the plugin in `trac.ini`:<pre>
 [components]
 wikisync.* = enabled`
-</blockquote>
+</pre>
 
 Usage
 -----
 
+Trac users require the following permissions:
+
+ - `TRAC_ADMIN`: To configure the remote server information in the admin panels
+ 
+ - `WIKI_ADMIN`: To perform synchronization
+
 Develop
 -------
 
+TODO
+
 Bugs
 ----
+
+Please use [Issues](https://github.com/ivanchoo/TracWikiSync/issues)
 
 Version History
 ---------------

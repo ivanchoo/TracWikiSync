@@ -30,6 +30,9 @@
 	line-height: 1.4em;
 	overflow: hidden;
 }
+.wikisync i {
+	color: #999;
+}
 .wikisync .nested {
 	margin-left: -80px;
 }

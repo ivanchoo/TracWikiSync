@@ -12,7 +12,7 @@
 	var TREE_NODE_TEMPLATE = 
 		'<li id="<%- cid %>" class="<%- status %>">' + 
 		'  <div class="item-wrapper">' +
-		'    <a href="<%- localUrl %>"><%- name %></a>' + 
+		'    <a href="<%- localUrl %>" target="_blank"><%= name %></a>' + 
 		'    <% if (status == "conflict") { %>' +
 		'      <span class="resolve-wrapper">' +
 		'        <i>Resolve as:</i>' +
@@ -39,7 +39,7 @@
 	var TREE_NESTED_NODE_TEMPLATE = 
 		'<li id="<%- cid %>" class="grouped">' + 
 		'  <div class="item-wrapper">' + 
-		'    <strong><%- name %></strong>' + 
+		'    <strong><%= name %></strong>' + 
 		'    <span class="controls">  ' + 
 		'      <a href="#" class="unignore-all">✔✔ Unignore All</a>' + 
 		'      <i> or </i>' + 
@@ -122,7 +122,7 @@
 		if (!strEndsWith(base, '/')) {
 			base += '/';
 		}
-		return base + _.rest(arguments).join('/');
+		return base + encodeURI(_.rest(arguments).join('/'));
 	};
     
 	var WikiSyncModel = Backbone.Model.extend({
@@ -215,7 +215,9 @@
 			});
 		},
 		ignore: function(models, isIgnore) {
-			var data = _.map(models, function(model) {
+			var self = this;
+			var batch = models.splice(0, 10);
+			var data = _.map(batch, function(model) {
 				return { name:'name', value:model.get('name') };
 			});
 			data.push({ name:'action', value:'resolve' });
@@ -223,14 +225,17 @@
 			this._post({ 
 				data:data,
 				beforeSend: function() {
-					_.each(models, function(model) {
+					_.each(batch, function(model) {
 						model.trigger('progress', model);
 					});
 				},
 				complete: function(xhr, status) {
-					_.each(models, function(model) {
+					_.each(batch, function(model) {
 						model.trigger('complete', model, status, isIgnore ? 'ignore' : 'unignore');
 					});
+					if (models.length) {
+						self.ignore(models, isIgnore);
+					}
 				}
 			});
 		},
@@ -276,7 +281,7 @@
 			'click button.submit': 'onSync',
 			'change input.resolve': 'onResolve',
 			'change #filter-conflict-resolve': 'onGlobalResolve',
-			'change input.filter': 'renderTree'
+			'change input.filter': 'onFilter'
 		},
 		initialize: function(opts) {
 			_.bindAll(this);
@@ -426,6 +431,16 @@
 				}
 			}
 		},
+		onFilter: function(evt) {
+			var el = $(evt.target);
+			var li = el.parents('li');
+			if (el.is(':checked')) {
+				li.addClass('selected');
+			} else {
+				li.removeClass('selected');
+			}
+			this.renderTree();
+		},
 		onSync: function(evt) {
 			evt.preventDefault();
 			this.sync(!this.syncPending);
@@ -473,8 +488,9 @@
 		onIgnore: function(evt) {
 			evt.preventDefault();
 			var target = $(evt.target);
-			var li = target.parents('li:first');
 			var isIgnore = true;
+			var isGlobal = !target.parent().is('.controls');
+			var li = isGlobal ? this.$list : target.parents('li:first');
 			if (target.hasClass('ignore-all')) {
 				li = li.find('li');
 			} else if (target.hasClass('unignore-all')) {
@@ -492,10 +508,17 @@
 				else if (!isIgnore && !el.hasClass('ignored')) return;
 				models.push(this.collection.getByCid(el.attr('id')));
 			}, this);
-			if (models.length) {
+			var num = models.length;
+			var verb = isIgnore ? 'ignored' : 'unignored';
+			if (num) {
+				if (num > 30) {
+					if (!confirm('Do you want to ' + verb + ' ' + num + ' wikies?')) {
+						return;
+					}
+				}
 				this.collection.ignore(models, isIgnore);
 			} else {
-				alert('All wikies are already ' + (isIgnore ? 'ignored' : 'unignored'));
+				alert('All wikies are already ' + verb);
 			}
 		}
 	});
