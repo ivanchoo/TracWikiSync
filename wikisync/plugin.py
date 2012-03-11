@@ -5,6 +5,8 @@ from wikisync.model import WikiSyncDao
 from wikisync.util import str_mask, str_unmask, safe_str, jsonify, \
     WikiSyncRpc, WikiSyncIgnoreFilter
 from genshi.builder import tag
+from genshi.core import Markup
+from genshi.filters import Transformer
 from trac.core import *
 from trac.util import get_reporter_id
 from trac.env import IEnvironmentSetupParticipant
@@ -77,6 +79,12 @@ class WikiSyncMixin(object):
         req.send_header('Content-Length', str(len(payload)))
         req.end_headers()
         req.write(payload)
+    
+    def _render_assets(self, req):
+        add_stylesheet(req, "wikisync/wikisync.css")
+        add_script(req, "wikisync/underscore.js")
+        add_script(req, "wikisync/backbone.js")
+        add_script(req, "wikisync/wikisync.js")
 
 class WikiSyncEnvironment(Component, WikiSyncMixin):
     """WikiSync environment setup"""
@@ -198,13 +206,50 @@ class WikiSyncAdminPanel(Component, WikiSyncMixin):
     
     def _get_config(self, key, default=""):
         return self.env.config.get(CONFIG_SECTION, key, default)
+
+class WikiSyncPagePlugin(Component, WikiSyncMixin):
+    """Provides additional controls in the context menu 
+    of individual wiki page"""
+    implements(ITemplateStreamFilter)
+    
+    # ITemplateStreamFilter
+    def filter_stream(self, req, method, filename, stream, data):
+        if "WIKI_ADMIN" in req.perm and filename == "wiki_view.html":
+            pagename = req.args.get("page", "WikiStart")
+            remote_url = self._get_config("url", "")
+            dao = self._get_dao()
+            item = dao.find(pagename)
+            if not item:
+                item = dao.factory(name=pagename)
+            params = {
+                "model": item,
+                "remote_url": remote_url,
+                "endpoint": req.href.wikisync()
+            }
+            add_ctxtnav(req,
+                tag.span(
+                    tag.a(
+                        Markup("&darr;"), 
+                        href="#", 
+                        class_="status %s" % item.status,
+                        id_="wikisync-page-link"
+                    ),
+                    class_="wikisync"
+                )
+            )
+            self._render_assets(req)
+            stream |= Transformer('.//body').prepend(
+                Chrome(self.env).load_template(
+                    "wikisync_page.html"
+                ).generate(**params)
+            )
+        return stream
         
 class WikiSyncPlugin(Component, WikiSyncMixin):
-    """Central interface to manage wiki syncronization"""
+    """Central interface for managing wiki syncronization"""
 
-    implements(INavigationContributor, IRequestHandler, ITemplateProvider,
-        ITemplateStreamFilter)
-        
+    implements(INavigationContributor, IRequestHandler, ITemplateProvider)
+    
     # INavigationContributor methods
     def get_active_navigation_item(self, req):
         return "wikisync"
@@ -226,11 +271,11 @@ class WikiSyncPlugin(Component, WikiSyncMixin):
         return [("wikisync", resource_filename(__name__, "htdocs"))]
     
     # ITemplateStreamFilter
-    def filter_stream(self, req, method, filename, stream, data):
-        if "WIKI_ADMIN" in req.perm:
-            # TODO: Render individual page controls via add_ctxtnav
-            pass
-        return stream
+    #def filter_stream(self, req, method, filename, stream, data):
+    #    if "WIKI_ADMIN" in req.perm:
+    #        # TODO: Render individual page controls via add_ctxtnav
+    #        pass
+    #    return stream
         
     def process_request(self, req):
         req.perm.require("WIKI_ADMIN")
@@ -263,7 +308,7 @@ class WikiSyncPlugin(Component, WikiSyncMixin):
                     if action == "refresh" and item:
                         info = rpc.get_remote_version(item.name)
                         if info:
-                            item = item.merge(sync_time=time.time(), **info[0])
+                            item = item.replace(sync_time=time.time(), **info[0])
                             dao.update(item)
                     elif action == "pull":
                         author = get_reporter_id(req)
@@ -276,14 +321,14 @@ class WikiSyncPlugin(Component, WikiSyncMixin):
                         except TracError, e:
                             if wiki.text != wiki.old_text:
                                 raise e
-                        item = item.merge(
+                        item = item.replace(
                             local_version=wiki.version
                         ).synchronized()
                         dao.update(item)
                     elif action == "push":
                         wiki = WikiPage(self.env, item.name)
                         assert wiki.version > 0, "Cannot find wiki '%s'" % item.name
-                        item = item.merge(
+                        item = item.replace(
                             **rpc.post_wiki(
                                 item.name, 
                                 wiki.text,
@@ -294,15 +339,15 @@ class WikiSyncPlugin(Component, WikiSyncMixin):
                     elif action == "resolve":
                         status = req.args.get("status")
                         if status == "ignore":
-                            item = item.merge(ignore=1)
+                            item = item.replace(ignore=1)
                         elif status == "unignore":
-                            item = item.merge(ignore=None)
+                            item = item.replace(ignore=None)
                         elif status == "local":
-                            item = item.merge(
+                            item = item.replace(
                                 sync_remote_version=item.remote_version
                             )
                         elif status == "remote":
-                            item = item.merge(
+                            item = item.replace(
                                 sync_local_version=item.local_version
                             )
                         else:
@@ -317,10 +362,7 @@ class WikiSyncPlugin(Component, WikiSyncMixin):
         elif redirect:
             req.redirect(req.href.wikisync())
         else:
-            add_stylesheet(req, "wikisync/wikisync.css")
-            add_script(req, "wikisync/underscore.js")
-            add_script(req, "wikisync/backbone.js")
-            add_script(req, "wikisync/wikisync.js")
+            self._render_assets(req)
             return "wikisync.html", {
                 "collection": [o for o in dao.all()],
                 "local_url": req.href.wiki(),

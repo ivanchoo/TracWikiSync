@@ -1,0 +1,133 @@
+.status-image(@name) {
+	background-image: url('images/status-@{name}.png');
+}
+
+.wikisync {
+	i {
+		color: #999;
+	}
+	/* controls */
+	.center {
+		text-align: center;
+	}
+	.ignore {
+		display: inline;
+	}
+	.unignore {
+		display: none;
+	}
+	.ignored {
+		.unignore {
+			display: inline;
+		}		
+		.ignore {
+			display: none;
+		}
+	}
+	.progress {
+		display: none;
+	}
+	.action {
+		display: inline;
+	}
+	.progressing {
+		.progress {
+			display: inline;
+		}
+		.action {
+			display: none;
+		}
+	}
+	/* sync status */
+	.conflict {
+		.status-image('conflict');
+	}
+	.ignored {
+		.status-image('ignored');
+	}
+	.missing {
+		.status-image('missing');
+	}
+	.modified {
+		.status-image('modified');
+	}
+	.new {
+		.status-image('new');
+	}
+	.outdated {
+		.status-image('outdated');
+	}
+	.synced {
+		.status-image('synced');
+	}
+	.unknown {
+		.status-image('unknown');
+	}
+	h5 {
+		background-repeat: no-repeat;
+		background-position: center center;
+		height: 22px;
+		text-indent: -1000px;
+		overflow: hidden;
+		margin: 0; padding: 0;
+	}
+	h5.conflict {
+		.status-image('conflict-big');
+	}
+	h5.ignored {
+		.status-image('ignored-big');
+	}
+	h5.missing {
+		.status-image('missing-big');
+	}
+	h5.modified {
+		.status-image('modified-big');
+	}
+	h5.new {
+		.status-image('new-big');
+	}
+	h5.outdated {
+		.status-image('outdated-big');
+	}
+	h5.synced {
+		.status-image('synced-big');
+	}
+	h5.unknown {
+		.status-image('unknown-big');
+	}
+	a.status {
+		padding-left: 64px;
+		background-repeat: no-repeat;
+		background-position: left center;
+	}
+}
+
+.wikisync-list {	
+	li {
+		list-style: none;
+		padding-left: 68px;
+		background-repeat: no-repeat;
+		background-position: left center;
+		line-height: 1.4em;
+		overflow: hidden;
+	}
+	ul.nested {
+		margin-left: -80px;
+	}
+	.hover {
+		background-color: #FFFFBF;
+	}
+}
+
+.wikisync-modal {
+	position: absolute;
+	background-color: #F7F7F0;
+	border: 1px outset #998;
+	padding: 12px;
+	width: 260px;
+	.close {
+		position: absolute;
+		top: 4px; right: 4px;
+	}
+
+}
