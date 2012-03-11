@@ -6,13 +6,41 @@ from collections import namedtuple
 class WikiSync(namedtuple("WikiSync", [
         "name", "ignore", "ignore_attachment", 
         "sync_time", "sync_remote_version", "sync_local_version",
-        "remote_version", "local_version",
+        "remote_version", "local_version", "status"
         ])):
     
     __slots__ = ()
     
-    def merge(self, **kwargs):
-        return self._replace(**kwargs)
+    def replace(self, *args, **kwargs):
+        if len(args):
+            kwargs = dict(zip(WikiSync._fields, args))
+        o = self._replace(**kwargs)
+        status = "unknown"
+        if o.ignore:
+            status = "ignored"
+        elif o.sync_time:
+            rv = safe_int(o.remote_version)
+            lv = safe_int(o.local_version)
+            srv = safe_int(o.sync_remote_version)
+            slv = safe_int(o.sync_local_version)
+            if rv and not lv:
+                # can"t find local copy
+                status = "missing"
+            elif lv and not rv:
+                # can"t find remote copy
+                status = "new"
+            elif rv > srv and lv > slv:
+                # both remote and local are out of sync
+                status = "conflict"
+            elif rv > srv:
+                # local in-sync, but remote out of sync
+                status = "outdated"
+            elif lv > slv:
+                # local out of sync, but remote in sync
+                status = "modified"
+            elif rv == srv and lv == slv:
+                status = "synced"
+        return o.status == status and o or o._replace(status=status)
     
     def validate(self):
         assert isinstance(self.name, basestring) and len(self.name) > 0, \
@@ -24,13 +52,13 @@ class WikiSync(namedtuple("WikiSync", [
             "Invalid remote_version '%s'" % self.remote_version
         assert safe_int(self.local_version), \
             "Invalid local_version '%s'" % self.local_version
-        return self.merge(
+        return self.replace(
             sync_remote_version=self.remote_version,
             sync_local_version=self.local_version,
             sync_time = time.time(),
         )
         
-_default_wikisync = WikiSync(
+WIKISYNC_FACTORY = WikiSync(
     name=None,
     ignore=None,
     ignore_attachment=None,
@@ -39,8 +67,12 @@ _default_wikisync = WikiSync(
     sync_local_version=None,
     remote_version=None,
     local_version=None,
+    status="unknown"
 )
 
+WIKISYNC_TABLE_FIELDS = [f for f in WikiSync._fields \
+    if f not in ("local_version", "status")]
+    
 class WikiSyncDao(object):
     
     def __init__(self, env):
@@ -48,8 +80,7 @@ class WikiSyncDao(object):
 
     def all(self):
         db = self.env.get_read_db()
-        fields = ["ws.%s" % f for f in WikiSync._fields \
-            if not f.startswith("local_")]
+        fields = ["ws.%s" % f for f in WIKISYNC_TABLE_FIELDS]
         sql = """
             SELECT %s, MAX(w.version) FROM wikisync ws
             LEFT JOIN wiki w ON w.name = ws.name
@@ -60,7 +91,7 @@ class WikiSyncDao(object):
         while True:
             row = cursor.fetchone()
             if row:
-                yield WikiSync._make(row)
+                yield WIKISYNC_FACTORY.replace(*row)
             else:
                 raise StopIteration()
     
@@ -76,7 +107,7 @@ class WikiSyncDao(object):
         cursor = db.cursor()
         cursor.execute(sql)
         for row in cursor.fetchall():
-            self.create(_default_wikisync.merge(name=row[0]))
+            self.create(WIKISYNC_FACTORY.replace(name=row[0]))
 
     def sync_remote_data(self, dataset, ignore_filter=None):
         sync_time = time.time()
@@ -93,8 +124,8 @@ class WikiSyncDao(object):
                 else:
                     if not item.sync_time:
                         if ignore_filter and ignore_filter.ignore(item.name):
-                            item = item.merge(ignore=1)
-                    item = item.merge(sync_time=sync_time, **data)
+                            item = item.replace(ignore=1)
+                    item = item.replace(sync_time=sync_time, **data)
                     self.update(item)
                 processed.add(name)
             if processed:
@@ -106,32 +137,30 @@ class WikiSyncDao(object):
                     if not item.local_version:
                         self.delete(item)
                     else:
-                        item = item.merge(
+                        item = item.replace(
                             remote_version=None,
                             sync_remote_version=None,
                         )
                         self.update(item)
 
     def factory(self, **kwargs):
-        return _default_wikisync.merge(**kwargs)
+        return WIKISYNC_FACTORY.replace(**kwargs)
         
     def find(self, name):
         assert isinstance(name, basestring) and len(name), \
             "String expected, but found '%s'" % name
         db = self.env.get_read_db()
         cursor = db.cursor()
-        fields = ["ws.%s" % f for f in WikiSync._fields \
-            if not f.startswith("local_")]
+        fields = ["ws.%s" % f for f in WIKISYNC_TABLE_FIELDS]
         sql = """
             SELECT %s, MAX(w.version) FROM wikisync ws
             LEFT JOIN wiki w ON w.name = ws.name
             WHERE ws.name=%%s
             GROUP BY w.name
         """ % ",".join(fields)
-
         cursor.execute(sql, (name,))
         row = cursor.fetchone()
-        return row and WikiSync._make(row) or None
+        return row and WIKISYNC_FACTORY.replace(*row) or None
     
     def delete(self, data):
         data.validate()
@@ -149,10 +178,10 @@ class WikiSyncDao(object):
 
     def create(self, data):
         data.validate()
-        fields = [f for f in WikiSync._fields if not f.startswith("local_")]
-        values = [getattr(data, f) for f in fields]
+        values = [getattr(data, f) for f in WIKISYNC_TABLE_FIELDS]
         sql = "INSERT INTO wikisync(%s) VALUES (%s)" % \
-            (",".join(fields), ",".join(["%s"] * len(fields)))
+            (",".join(WIKISYNC_TABLE_FIELDS), 
+                ",".join(["%s"] * len(WIKISYNC_TABLE_FIELDS)))
         @self.env.with_transaction()
         def execute(db):
             cursor = db.cursor()
@@ -164,12 +193,11 @@ class WikiSyncDao(object):
     
     def update(self, data):
         data.validate()
-        fields = [f for f in WikiSync._fields if not f.startswith("local_")]
-        values = [getattr(data, f) for f in fields]
+        values = [getattr(data, f) for f in WIKISYNC_TABLE_FIELDS]
         values.append(data.name)
         sql = """
             UPDATE wikisync SET %s WHERE name=%%s
-        """ % ",".join(["%s=%%s" % k for k in fields])
+        """ % ",".join(["%s=%%s" % k for k in WIKISYNC_TABLE_FIELDS])
         @self.env.with_transaction()
         def execute(db):
             cursor = db.cursor()
