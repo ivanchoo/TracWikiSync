@@ -1,8 +1,14 @@
 (function() {
 	var MODEL_KEYS = [
-		"name", "ignore", "ignore_attachment", 
-        "sync_time", "sync_remote_version", "sync_local_version",
-        "remote_version", "local_version"
+		'name', 
+		'ignore', 
+		'ignore_attachment', 
+        'sync_time', 
+        'sync_remote_version', 
+        'sync_local_version',
+        'remote_version', 
+        'local_version', 
+        'status'
     ];
 
 	var SPLIT_NUMBER_REGEX = new RegExp('([0-9.]+)', 'g');
@@ -49,6 +55,15 @@
 		'  <ul class="nested"><%= nested %></ul>' +
 		'</li>';
 	
+	/*
+	 * Splits the model name by camelcase, numbers, forward slash
+	 * and underscore, and returns an array of the following structure:
+	 * [
+	 *   ['tokenized keyword n n', model],
+	 *   [ ... ],
+	 *   ...,
+	 * ]
+	 */
 	var tokenizeModelByName = function(models) {
 		return _.reduce(models, function(memo, model) {
 			memo.push([
@@ -62,7 +77,14 @@
 		}, []);
 	}
 	
-	var groupByTokenState = function(entries, key, nodes) {
+	/* Groups the tokenized structure by the first keyword in the tokens:
+	 * {
+	 *   'keyword': [ [tokenizeModelByName], [tokenizeModelByName], ..],
+	 *   'keyword2': [ ..],
+	 *   ...,
+	 * }
+	 */
+	var groupByFirstTokenKeyword = function(entries, key, nodes) {
 		var grouped = _.groupBy(entries, function(entry) {
 			/* entry = [[key1, key2, ..], model] */
 			return entry[0] ? entry[0].shift() : '';
@@ -81,10 +103,18 @@
 		}
 	};
 	
-	var groupByTokenHierachy = function(models) {
+	/* Formats an array of models into the following nested structure:
+	 * [ model,
+	 *   model,
+	 *   [ 'groupedNamePrefix', [ model, model, ..] ],
+	 *   model,
+	 *   ...
+	 * ]
+	 */
+	var groupByModelNameHierachy = function(models) {
 		var minSize = 2,
 			results = [],
-			stack = [groupByTokenState(tokenizeModelByName(models), '', results)],
+			stack = [groupByFirstTokenKeyword(tokenizeModelByName(models), '', results)],
 			state, key, subEntries, subNodes, parent, name, subKey;
 		while(true) {
 			state = stack[0];
@@ -104,7 +134,7 @@
 				subKey = state.key + name.substr(0, name.indexOf(key) + key.length);
 				subNodes = [];
 				nodes.push([subKey, subNodes]);
-				stack.unshift(groupByTokenState(subEntries, subKey, subNodes));
+				stack.unshift(groupByFirstTokenKeyword(subEntries, subKey, subNodes));
 			} else {
 				_.each(subEntries, function(entry) {
 					nodes.push(entry[1]);
@@ -125,55 +155,25 @@
 		return base + encodeURI(_.rest(arguments).join('/'));
 	};
     
+    /* Represents a wiki synchronization state */
 	var WikiSyncModel = Backbone.Model.extend({
 		defaults: {
-			resolve: 'skip'
+			resolve: 'skip',
+			status: 'unknown'
 		},
 		initialize: function() {
 
 		},
 		parse: function(data) {
+			/* Note: must follow the field order as defined in wikisync.model */
 			return _.reduce(data, function(memo, value, index) {
 				memo[MODEL_KEYS[index]] = value;
 				return memo;
 			}, {});
-		},
-		getInt: function(attribute) {
-			var v = this.get(attribute);
-			return _.isNumber(v) ? v : 0;
-		},
-		status: function() {
-			if (this.get('ignore')) {
-				return "ignored";
-			} else if (!this.get('sync_time')) {
-				return "unknown";
-			}
-			var rv = this.getInt('remote_version');
-			var lv = this.getInt('local_version');
-			var srv = this.getInt('sync_remote_version');
-			var slv = this.getInt('sync_local_version');
-			if (rv && !lv) {
-				// can't find local copy
-				return "missing"
-			} else if (lv && !rv) {
-				// can't find remote copy
-				return "new"
-			} else if (rv > srv && lv > slv) {
-				// both remote && local are out of sync
-				return "conflict"
-			} else if (rv > srv) {
-				// local in-sync, but remote out of sync
-				return "outdated"
-			} else if (lv > slv) {
-				// local out of sync, but remote in sync
-				return "modified"
-			} else if (rv == srv && lv == slv) {
-				return "synced"
-			}
-			return "unknown"
 		}
 	});
 	
+	/* Repesents a collection of WikiSyncModel */
 	var WikiSyncCollection = Backbone.Collection.extend({
 		model: WikiSyncModel,
 		formToken: null,
@@ -181,11 +181,12 @@
 			this.url = opts.url;
 		},
 		comparator: function(model) {
+			/* Always sort by name */
 			return model.get('name');
 		},
 		sync: function(model, resolveAs) {
 			if (!_.isString(resolveAs)) {
-				resolveAs = model.status();
+				resolveAs = model.get('status');
 			}
 			var action;
 			switch(resolveAs) {
@@ -241,6 +242,9 @@
 		},
 		_post: function(opts) {
 			if (_.isArray(opts.data)) {
+				/* Must include form token injected by trac,
+				 * else form post won't get processed.
+				 */
 				opts.data.push({ name:'__FORM_TOKEN', value:this.formToken });
 			}
 			var self = this;
@@ -274,6 +278,7 @@
 		}
 	});
 	
+	/* Main wikisync view */
 	var WikiSyncView = Backbone.View.extend({
 		events: {
 			'click .ignore-item,.ignore-all': 'onIgnore',
@@ -308,14 +313,14 @@
 				}
 			});
 			var filtered = this.collection.filter(function(model) {
-				return filterKeys[model.status()];
+				return filterKeys[model.get('status')];
 			});
 			var filterHash = _.map(filtered, function(model) {
 				return model.cid;
 			}).join('');
 			if (filterHash != this.filterHash) {
 				/* avoid expensive redraw by comparing filterHash */
-				var tree = groupByTokenHierachy(filtered);
+				var tree = groupByModelNameHierachy(filtered);
 				var content = _.map(tree, this.formatTreeNode);
 				this.$list.find('div.item-wrapper').unbind('mouseover mouseout');
 				this.$list.empty().html(content.join(''));
@@ -336,7 +341,6 @@
 				var data = node.toJSON();
 				var name = node.get('name');
 				data['cid'] = node.cid;
-				data['status'] = node.status();
 				data['localUrl'] = formatUrl(this.localUrl, name);
 				data['remoteUrl'] = formatUrl(this.remoteUrl, 'wiki', name);
 				return this.nodeTemplate(data);
@@ -385,7 +389,7 @@
 				alert('Synchronization complete');
 			} else {
 				var resolveAs;
-				if (model.status() == 'conflict') {
+				if (model.get('status') == 'conflict') {
 					resolveAs = $('#filter-conflict-resolve').val() || model.get('resolve');
 					if (resolveAs == 'skip') {
 						this.syncNext();
@@ -468,7 +472,7 @@
 		onGlobalResolve: function(evt) {
 			var val = $(evt.target).val(),
 				conflicts = this.collection.filter(function(model) {
-					return model.status() == 'conflict';
+					return model.get('status') == 'conflict';
 				});
 			if (val) {
 				_.each(conflicts, function(model) {
@@ -523,11 +527,58 @@
 		}
 	});
 	
+	/* Wikisync pulldown panel as seen at the navigation context menu */
+	var WikiSyncPageView = Backbone.View.extend({
+		el: 'body',
+		events: {
+			'click #wikisync-panel-toggle': 'onPanelToggle',
+			'click #wikisync-panel-close': 'onPanelToggle'
+		},
+		initialize: function() {
+			_.bindAll(this);
+		},
+		render: function() {
+			var $panel = this.$('#wikisync-panel').hide();
+			var $radios = $panel.find('input[type="radio"]');
+			if ($radios.length) {
+				/* for conflict status */
+				$radios.bind('change', this.onRadioChange);
+				$panel.find('input[type="submit"]').attr('disabled', 'disabled');
+			}
+			return this;
+		},
+		toggle: function() {
+			var $panel = this.$('#wikisync-panel');
+			if ($panel.is(':visible')) {
+				$panel.hide();
+			} else {
+				var $link = this.$('#wikisync-panel-toggle');
+				var pos = $link.offset();
+				$panel.stop()
+					.css({
+						top: pos.top + $link.outerHeight() + 4,
+						right: $(window).width() - pos.left - $link.outerWidth() - 6
+					})
+					.fadeIn();
+			}
+		},
+		onPanelToggle: function(evt) {
+			evt.preventDefault();
+			this.toggle();
+		},
+		onRadioChange: function(evt) {
+			this.$('#wikisync-panel')
+				.find('input[type="submit"]')
+				.removeAttr('disabled');
+		}
+	});
+	
 	var root = this;
 	root.wikisync = {
 		WikiSyncModel: WikiSyncModel,
 		WikiSyncCollection: WikiSyncCollection,
-		WikiSyncView: WikiSyncView
+		WikiSyncView: WikiSyncView,
+		WikiSyncPageView: WikiSyncPageView
 	};
 	
 }());

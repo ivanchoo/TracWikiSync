@@ -1,5 +1,6 @@
-.wikisync{}.wikisync i{color:#999;}
+.wikisync{}.wikisync i{color:#999999;}
 .wikisync .center{text-align:center;}
+.wikisync .indicate{cursor:help;border-bottom:1px dotted #bbbbbb;}
 .wikisync .ignore{display:inline;}
 .wikisync .unignore{display:none;}
 .wikisync .ignored .unignore{display:inline;}
@@ -29,4 +30,5 @@
 .wikisync-list li{list-style:none;padding-left:68px;background-repeat:no-repeat;background-position:left center;line-height:1.4em;overflow:hidden;}
 .wikisync-list ul.nested{margin-left:-80px;}
 .wikisync-list .hover{background-color:#FFFFBF;}
-.wikisync-modal{position:absolute;background-color:#F7F7F0;border:1px outset #998;padding:12px;width:260px;}.wikisync-modal .close{position:absolute;top:4px;right:4px;}
+.wikisync-panel{position:absolute;background-color:#F7F7F0;border:1px outset #998;padding:12px;width:260px;z-index:100;right:10px;top:10px;text-align:center;}.wikisync-panel .close{position:absolute;top:4px;right:8px;}
+.wikisync-panel .last-synced{font-style:italic;font-size:smaller;text-align:center;color:#999999;}

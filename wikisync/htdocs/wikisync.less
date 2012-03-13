@@ -2,13 +2,19 @@
 	background-image: url('images/status-@{name}.png');
 }
 
+@grey: #999;
+
 .wikisync {
 	i {
-		color: #999;
+		color: @grey;
 	}
 	/* controls */
 	.center {
 		text-align: center;
+	}
+	.indicate {
+		cursor: help;
+		border-bottom: 1px dotted #BBB
 	}
 	.ignore {
 		display: inline;
@@ -119,15 +125,23 @@
 	}
 }
 
-.wikisync-modal {
+.wikisync-panel {
 	position: absolute;
 	background-color: #F7F7F0;
 	border: 1px outset #998;
 	padding: 12px;
 	width: 260px;
+	z-index: 100;
+	right: 10px; top: 10px;
+	text-align: center;
 	.close {
 		position: absolute;
-		top: 4px; right: 4px;
+		top: 4px; right: 8px;
 	}
-
+	.last-synced {
+		font-style: italic;
+		font-size: smaller;
+		text-align: center;
+		color: @grey;
+	}
 }

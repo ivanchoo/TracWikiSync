@@ -13,8 +13,21 @@ except ImportError:
 def jsonify(obj):
     """Returns a jsonified string"""
     return json.dumps(obj)
-        
+
+def safe_url(prefix, *paths):
+    """Safely encode a url path, ensuring the prefix has no tailing slash
+    and the path fragment is uses the %%xx escape."""
+    if prefix.endswith("/"):
+        prefix = host[-1]
+    if paths:
+        suffix = "/".join(paths)
+        if suffix.startswith("/"):
+            suffix = suffix[1:]
+        return "%s/%s" % (prefix, urllib.quote(suffix.encode("utf-8")))
+    return host
+    
 def safe_unicode(obj, encoding="utf-8"):
+    """Returns a unicode object, suppressing all errors"""
     t = type(obj)
     if t is unicode:
         return obj
@@ -29,6 +42,7 @@ def safe_unicode(obj, encoding="utf-8"):
             return str(obj).decode(encoding)
     
 def safe_str(obj, encoding="utf-8"):
+    """Returns a string object, suppressing all errors"""
     if isinstance(obj, unicode):
         return obj.encode(encoding)
     elif isinstance(obj, str):
@@ -39,17 +53,21 @@ def safe_str(obj, encoding="utf-8"):
         return str(obj)
 
 def safe_int(value):
+    """Returns an int object, suppressing all errors, default to 0"""
     try:
         return int(value)
     except:
         return 0
         
 def str_mask(message):
+    """Masks a string to make it unreadable.
+    This is not to be used as a mean of encryption"""
     assert isinstance(message, basestring) and len(message), \
         "Expect string, got '%s'" % message
     return base64.b64encode(zlib.compress(message))
 
 def str_unmask(masked):
+    """Opposite of str_mask()"""
     assert isinstance(masked, basestring) and len(masked), \
         "Expect string, got '%s'" % masked
     try:
@@ -58,12 +76,22 @@ def str_unmask(masked):
         raise ValueError("Unable to unmask string: %s" % e)
 
 def safe_urlencode(data):
+    """Returns an url encoded string, safely handles string encodings"""
     safe = {}
     for k, v in data.items():
         safe[safe_str(k)] = safe_str(v)
     return urllib.urlencode(safe)
+
+def server_name(url):
+    """Returns a readable server name"""
+    info = urlparse(url)
+    name = info.hostname
+    if info.port and info.port not in (80, 443):
+        name = "%s:%s" % (name, info.port)
+    return name
     
 def parse_form_params(source, form_id=None, exclude=None):
+    """Returns the values of a HTML form in a dict"""
     if isinstance(source, basestring):
         f = StringIO(source)
     elif hasattr(source, "read"):
@@ -107,18 +135,24 @@ def parse_form_params(source, form_id=None, exclude=None):
     return params
     
 def parse_recent_changes(source, path_prefix="/wiki"):
+    """Parses the 'RecentChanges' HTML source and return an array of dict
+    containing the wiki 'name' and 'remote_version'"""
     return _parse_html_version_links(source, 
         lambda data: data[1].get("id", None) == "wikipage", 
         path_prefix
     )
 
 def parse_timeline(source, path_prefix="/wiki"):
+    """Parses the 'Timeline' HTML source and return an array of dict
+    containing the wiki 'name' and 'remote_version'"""
     return _parse_html_version_links(source, 
         lambda data: data[1].get("id", None) == "content", 
         path_prefix
     )
 
 def parse_wiki(source, path_prefix="/wiki"):
+    """Parses a wiki pageit HTML source and return an array of dict
+    containing the wiki 'name' and 'remote_version'"""
     return _parse_html_version_links(source, 
         lambda data: data[1].get("class", None) == "trac-modifiedby", 
         path_prefix
@@ -172,20 +206,21 @@ def _parse_html_version_links(source, check_data, path_prefix):
                 break
     return map.values()
 
-class WikiSyncIgnoreFilter(object):
-
+class RegExpFilter(object):
+    """Helper class to match a string to multiple regular expressions."""
+    
     def __init__(self, filters):
         if isinstance(filters, basestring):
             filters = filters.split()
-        self._regex = [re.compile(f) for f in filters]
+        self._regexes = filters and [re.compile(f) for f in filters] or []
     
-    def ignore(self, name):
-        for r in self._regex:
+    def matches(self, name):
+        for r in self._regexes:
             if r.match(name):
                 return True
         return False
         
-class WikiSyncRpc(object):
+class WebClient(object):
 
     def __init__(self, baseurl, username=None, password=None, debug=False):
         assert isinstance(baseurl, basestring) and len(baseurl), \
@@ -273,10 +308,8 @@ class WikiSyncRpc(object):
             self._cookie_jar.save(ignore_discard=True)
 
     def url(self, path=""):
-        if path.startswith("/"):
-            path = path[1:]
-        return "%s/%s" % (self.baseurl, urllib.quote(path.encode("utf-8")))
-    
+        return safe_url(self.baseurl, path)
+        
     def basepath(self, path=""):
         return urlparse(self.url(path)).path
     
@@ -295,14 +328,14 @@ class WikiSyncRpc(object):
         return parse_wiki(
             self.open("wiki/%s" % name), self.basepath("wiki"))
         
-    def pull_wiki(self, name, version=None):
+    def pull(self, name, version=None):
         data = { "format":"txt" }
         if version:
             data["version"] = version
         f = self.open("wiki/%s" % name, data, "GET")
         return safe_unicode(f.read())
     
-    def post_wiki(self, name, text, comments=None):
+    def push(self, name, text, comments=None):
         data = { "action":"edit" }
         params = parse_form_params(
             self.open("wiki/%s" % name, data, "GET"), 
