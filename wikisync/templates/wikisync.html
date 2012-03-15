@@ -1,105 +1,147 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:py="http://genshi.edgewall.org/" xmlns:xi="http://www.w3.org/2001/XInclude">
+<html xmlns="http://www.w3.org/1999/xhtml" 
+	xmlns:py="http://genshi.edgewall.org/"
+	xmlns:xi="http://www.w3.org/2001/XInclude">
   <xi:include href="layout.html" />
   <?python
-    from wikisync.util import jsonify
+    from wikisync.util import jsonify, server_name
   ?>
+  
+  <!-- !Macro: renders a readable remote host name -->
+  <py:def function="remote_server">${server_name(remote_url)}</py:def>
+  
   <head>
     <title>Wiki Synchronization</title>
   </head>
   <body>
     <div id="ctxtnav" class="nav"></div>
-    <div id="wikisync" class="wikisync">
-      <h1>Wiki Synchronization</h1>
-      <form id="wikisync-controls" method="post">
-        <fieldset>
-					<legend>Synchronization Options</legend>
-					<ul>
-						<li class="modified">
-							<label for="filter-modified">
-								<input id="filter-modified" type="checkbox" checked="checked" value="modified" class="filter" />
-								Modified wiki will be posted to remote server
-							</label>
-						</li>
-						<li class="new">
-							<label for="filter-new">
-								<input id="filter-new" type="checkbox" checked="checked" value="new" class="filter" />
-								New wiki will be posted to remote server
-							</label>
-						</li>
-						<li class="outdated">
-							<label for="filter-outdated">
-								<input id="filter-outdated" type="checkbox" checked="checked" value="outdated" class="filter" />
-								Outdated wiki will be updated with newer version from remote server
-							</label>
-						</li>
-						<li class="missing">
-							<label for="filter-missing">
-								<input id="filter-missing" type="checkbox" checked="checked" value="missing" class="filter" />
-								Missing wiki will be updated with newer version from remote server
-							</label>
-						</li>
-						<li class="conflict">
-							<label for="filter-conflict">
-								<input id="filter-conflict" type="checkbox" checked="checked" value="conflict" class="filter" />
-								Conflict wiki will be resolved as
-							</label>							
-							<select id="filter-conflict-resolve" class="filter filter-resolve">
-								<option value="" selected="selected">per individual wiki option</option>
-								<option value="modified">Modified</option>
-								<option value="outdated">Outdated</option>
-							</select>
-						</li>
-						<li class="unknown">
-							<label for="filter-unknown">
-								<input id="filter-unknown" type="checkbox" checked="checked" value="modified" class="filter" />
-								Detect unknown wiki status
-							</label>
-						</li>
-						<li class="synced">
-							<label for="filter-synced">
-								<input id="filter-synced" type="checkbox" value="synced" class="filter" />
-								Reveal synchronized wiki
-							</label>
-						</li>
-						<li class="ignored">
-							<label for="filter-ignored">
-								<input id="filter-ignored" type="checkbox" value="ignored" class="filter"  />
-								Reveal ignored wiki
-							</label>
-							<span class="controls-all">
-								<a href="#" class="unignore-all">✔✔ Unignore All</a>
-								<i> or </i>
-								<a href="#" class="ignore-all">✘✘ Ignore All</a>
-							</span>
-						</li>
-					</ul>
-					<div style="padding-left:104px">
-					  <p class="action">
-					    <button class="submit">Start Synchronization</button> 
-					    or <a href="${req.href.wikisync(action='refresh')}">Refresh Synchronization Status</a>
-					  </p>
-					  <p class="progress"><button class="submit">Stop Synchronization</button> <i>In progress..</i></p>
-					</div>
-        </fieldset>
-      </form>
-      <h2>Wiki Status</h2>
-      <ul id="wikisync-list"></ul>
-      <script type="text/javascript">
-        $(function() {
-        	var ns = wikisync;
-        	var app = new ns.WikiSyncView({
-        		el: '#wikisync',
-        		localUrl: '${local_url}',
-        		remoteUrl: '${remote_url}',
-        		collection: new ns.WikiSyncCollection(
-        			${Markup(jsonify(collection))}, 
-        			{ parse:true, url:'${endpoint}' }
-        		)
-        	}).render();
-        });
-      </script>
+    <div id="wikisync" class="wikisync" py:choose="">
+      <py:when test="not remote_url">
+      	<p>No Config</p>
+      </py:when>
+      <py:otherwise>
+				<form id="wikisync-form" method="post" class="wikisync-form">
+					<fieldset>
+						<legend>Wiki Synchronization</legend>
+						<fieldset style="float:right;">
+							<legend>Filter Wiki Name</legend>
+							<input type="text" value="" placeholder="'Keyword' or '^Regular.*Expression$'" style="width:240px" />
+						</fieldset>
+						<ul class="wikisync-form-list">
+							<li class="modified">
+								<label for="filter-modified" class="selected">
+									<input id="filter-modified" type="checkbox" checked="checked" value="modified" class="filter" />
+									<i class="status">MODIFIED</i> pages will be updated to ${remote_server()}
+								</label>
+							</li>
+							<li class="new">
+								<label for="filter-new" class="selected">
+									<input id="filter-new" type="checkbox" checked="checked" value="new" class="filter" />
+									<i class="status">NEW</i> pages will be updated to ${remote_server()}
+								</label>
+							</li>
+							<li class="outdated">
+								<label for="filter-outdated" class="selected">
+									<input id="filter-outdated" type="checkbox" checked="checked" value="outdated" class="filter" />
+									<i class="status">OUTDATED</i> pages will be copied from ${remote_server()}
+								</label>
+							</li>
+							<li class="missing">
+								<label for="filter-missing" class="selected">
+									<input id="filter-missing" type="checkbox" checked="checked" value="missing" class="filter" />
+									<i class="status">MISSING</i> pages will be copied from ${remote_server()}
+								</label>
+							</li>
+							<li class="conflict">
+								<label for="filter-conflict" class="selected">
+									<input id="filter-conflict" type="checkbox" checked="checked" value="conflict" class="filter" />
+									<i class="status">CONFLICT</i> pages will be
+								</label>							
+								<select id="filter-conflict-resolve" class="filter">
+									<option value="" selected="selected"> synced as per individual option</option>
+									<option value="modified">updated to ${remote_server()}</option>
+									<option value="outdated">copied from ${remote_server()}</option>
+								</select>
+							</li>
+							<li class="unknown">
+								<label for="filter-unknown" class="selected">
+									<input id="filter-unknown" type="checkbox" checked="checked" value="modified" class="filter" />
+									<i class="status">UNKNOWN</i> pages will check for updates
+								</label>
+							</li>
+							<li class="synced">
+								<label for="filter-synced">
+									<input id="filter-synced" type="checkbox" value="synced" class="filter" />
+									<i class="status">SYNCED</i> pages require no action
+								</label>
+							</li>
+							<li class="ignored">
+								<label for="filter-ignored">
+									<input id="filter-ignored" type="checkbox" value="ignored" class="filter"  />
+									<i class="status">IGNORED</i> pages are simply ignored
+								</label>
+							</li>
+							<li>
+								<p class="action">
+									<input type="submit" value="Start Synchronization" />
+									<i>or</i> <a href="${req.href.wikisync(action='refresh')}">Check for updates</a>
+								</p>
+							</li>
+						</ul>
+					</fieldset>
+				</form>
+				<h1>Wiki Status</h1>
+				<ul id="wikisync-list" class="wikisync-list">
+					<!-- !
+				  <li class="modified">
+				  	<p class="controls">
+  				    <a href="#" class="ext-link"><i class="icon">&nbsp;</i>Remote</a>
+  				    <i>or</i>
+  				    <a href="#">Ignore</a>
+  				  </p>
+				  	<p>
+  				    <i class="status">MODIFIED</i>
+  				    <a href="#">WikiStart/WikiStart/WikiStart/WikiStart/WikiStart/WikiStart/WikiStart/WikiStart/WikiStart/WikiStart/WikiStart/WikiStart/</a>
+  				  </p>
+  				  <p class="hint">
+  				    In progress...
+  				  </p>
+				  </li>
+				  <li>
+				    <p class="controls">
+  				    <a href="#">Ignore All</a>
+  				    <i>or</i>
+  				    <a href="#">Unignore All</a>
+  				  </p>
+				    <p class="group">
+  				    <strong>WikiFoo</strong>
+  				  </p>
+				    <ul>
+							<li class="synced">
+								<i class="icon">SYNCED</i>
+								<a href="#">WikiStart</a>
+							</li>
+				    </ul>
+				  </li>
+				  -->
+				</ul>
+				<script type="text/javascript">
+					$(function() {
+						var ns = wikisync;
+						var app = new ns.WikiSyncView({
+							el: '#wikisync',
+							localUrl: '${local_url}',
+							remoteUrl: '${remote_url}',
+							remoteServer: '${server_name(remote_url)}',
+							collection: new ns.WikiSyncCollection(
+								${Markup(jsonify(collection))}, 
+								{ parse:true, url:'${action_url}' }
+							)
+						}).render();
+					});
+				</script>
+			</py:otherwise>
     </div>
   </body>
 </html>

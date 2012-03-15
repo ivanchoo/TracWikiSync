@@ -30,21 +30,88 @@
 			display: none;
 		}
 	}
-	.progress {
-		display: none;
+	.hover {
+		background-color: #FFFFBF;
 	}
-	.action {
-		display: inline;
+	label {
+		color: @grey;
 	}
-	.progressing {
-		.progress {
-			display: inline;
-		}
-		.action {
-			display: none;
-		}
+	label.selected {
+		color: #000;
 	}
 	/* sync status */
+	.status {
+		background-repeat: no-repeat;
+		background-position: center center;
+		min-width: 64px;
+		text-indent: -1000px;
+		display: inline-block;
+	}
+	.conflict .status {
+		.status-image('conflict');
+	}
+	.ignored .status {
+		.status-image('ignored');
+	}
+	.missing .status {
+		.status-image('missing');
+	}
+	.modified .status {
+		.status-image('modified');
+	}
+	.new .status {
+		.status-image('new');
+	}
+	.outdated .status {
+		.status-image('outdated');
+	}
+	.synced .status {
+		.status-image('synced');
+	}
+	.unknown .status {
+		.status-image('unknown');
+	}
+	.progress .status {
+		background-image: url('images/loading.gif') !important;
+	}
+	.wikisync-list {
+		padding: 0;
+		margin: 0 0 12px 0;
+		ul, li, p {
+			padding: 0; margin: 0;
+			list-style: none;
+		}
+		p {
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			height: 26px;
+			line-height: 26px;
+		}
+		.controls {
+			display: none;
+			float: right;
+			width: 200px;
+			margin-left: 12px;
+		}
+		.hover > .controls {
+			display: inline-block;
+		}
+		.indent {
+			padding-left: 68px;
+		}
+		.error {
+			color: #c00;
+			font-style: italic;
+		}
+	}
+	.wikisync-form {
+		ul, li {
+			list-style: none;
+		}
+	}
+	
+	/*
 	.conflict {
 		.status-image('conflict');
 	}
@@ -69,60 +136,31 @@
 	.unknown {
 		.status-image('unknown');
 	}
-	h5 {
-		background-repeat: no-repeat;
-		background-position: center center;
-		height: 22px;
-		text-indent: -1000px;
-		overflow: hidden;
-		margin: 0; padding: 0;
-	}
-	h5.conflict {
+	.conflict-big {
 		.status-image('conflict-big');
 	}
-	h5.ignored {
+	.ignored-big {
 		.status-image('ignored-big');
 	}
-	h5.missing {
+	.missing-big {
 		.status-image('missing-big');
 	}
-	h5.modified {
+	.modified-big {
 		.status-image('modified-big');
 	}
-	h5.new {
+	.new-big {
 		.status-image('new-big');
 	}
-	h5.outdated {
+	.outdated-big {
 		.status-image('outdated-big');
 	}
-	h5.synced {
+	.synced-big {
 		.status-image('synced-big');
 	}
-	h5.unknown {
+	.unknown-big {
 		.status-image('unknown-big');
 	}
-	a.status {
-		padding-left: 64px;
-		background-repeat: no-repeat;
-		background-position: left center;
-	}
-}
-
-.wikisync-list {	
-	li {
-		list-style: none;
-		padding-left: 68px;
-		background-repeat: no-repeat;
-		background-position: left center;
-		line-height: 1.4em;
-		overflow: hidden;
-	}
-	ul.nested {
-		margin-left: -80px;
-	}
-	.hover {
-		background-color: #FFFFBF;
-	}
+	*/
 }
 
 .wikisync-panel {

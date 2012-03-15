@@ -42,7 +42,7 @@ Inter*
 (?!^WikiStart$)Wiki.*"""
 
 class WikiSyncMixin(object):
-    """Component mixin provides common utlitity methods"""
+    """Component mixin provides common utility methods"""
         
     def _get_config(self, key, default=None):
         return self.env.config.get(CONFIG_SECTION, key, default)
@@ -283,9 +283,9 @@ class WikiSyncPlugin(Component, WikiSyncMixin):
     def process_request(self, req):
         req.perm.require("WIKI_ADMIN")
         if req.args.get("action"):
-            self._process_action(req)
+            return self._process_action(req)
         else:
-            self._process_main(req)
+            return self._process_main(req)
     
     def _process_main(self, req):
         dao = WikiSyncDao(self.env)
@@ -294,7 +294,7 @@ class WikiSyncPlugin(Component, WikiSyncMixin):
             "collection": [o for o in dao.all()],
             "local_url": req.href.wiki(),
             "remote_url": self._get_config("url"),
-            "endpoint": req.href.wikisync(),
+            "action_url": req.href.wikisync(),
         }, None
 
     def _process_action(self, req):
@@ -411,10 +411,8 @@ class WikiSyncPlugin(Component, WikiSyncMixin):
         if req.get_header("X-Requested-With") == "XMLHttpRequest" or \
             req.get_header("HTTP_X_REQUESTED_WITH") == "XMLHttpRequest":
             if error:
-                payload = safe_str(jsonify({
-                    "error": safe_unicode(error)
-                }))
-                req.send(payload, "text/json", 500)
+                payload = safe_str(error);
+                req.send(payload, "text/plain", 500)
             else:
                 payload = safe_str(jsonify(dao.findMany(*names)))
                 req.send(payload, "text/json", 200)
@@ -425,7 +423,6 @@ class WikiSyncPlugin(Component, WikiSyncMixin):
                 req.redirect(req.href.wiki(names[0]))
             else:
                 req.redirect(req.href.wikisync())
-
 
     def _get_web_client(self):
         baseurl = self._get_config("url")

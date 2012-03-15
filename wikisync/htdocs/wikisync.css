@@ -5,30 +5,25 @@
 .wikisync .unignore{display:none;}
 .wikisync .ignored .unignore{display:inline;}
 .wikisync .ignored .ignore{display:none;}
-.wikisync .progress{display:none;}
-.wikisync .action{display:inline;}
-.wikisync .progressing .progress{display:inline;}
-.wikisync .progressing .action{display:none;}
-.wikisync .conflict{background-image:url('images/status-conflict.png');}
-.wikisync .ignored{background-image:url('images/status-ignored.png');}
-.wikisync .missing{background-image:url('images/status-missing.png');}
-.wikisync .modified{background-image:url('images/status-modified.png');}
-.wikisync .new{background-image:url('images/status-new.png');}
-.wikisync .outdated{background-image:url('images/status-outdated.png');}
-.wikisync .synced{background-image:url('images/status-synced.png');}
-.wikisync .unknown{background-image:url('images/status-unknown.png');}
-.wikisync h5{background-repeat:no-repeat;background-position:center center;height:22px;text-indent:-1000px;overflow:hidden;margin:0;padding:0;}
-.wikisync h5.conflict{background-image:url('images/status-conflict-big.png');}
-.wikisync h5.ignored{background-image:url('images/status-ignored-big.png');}
-.wikisync h5.missing{background-image:url('images/status-missing-big.png');}
-.wikisync h5.modified{background-image:url('images/status-modified-big.png');}
-.wikisync h5.new{background-image:url('images/status-new-big.png');}
-.wikisync h5.outdated{background-image:url('images/status-outdated-big.png');}
-.wikisync h5.synced{background-image:url('images/status-synced-big.png');}
-.wikisync h5.unknown{background-image:url('images/status-unknown-big.png');}
-.wikisync a.status{padding-left:64px;background-repeat:no-repeat;background-position:left center;}
-.wikisync-list li{list-style:none;padding-left:68px;background-repeat:no-repeat;background-position:left center;line-height:1.4em;overflow:hidden;}
-.wikisync-list ul.nested{margin-left:-80px;}
-.wikisync-list .hover{background-color:#FFFFBF;}
+.wikisync .hover{background-color:#FFFFBF;}
+.wikisync label{color:#999999;}
+.wikisync label.selected{color:#000;}
+.wikisync .status{background-repeat:no-repeat;background-position:center center;min-width:64px;text-indent:-1000px;display:inline-block;}
+.wikisync .conflict .status{background-image:url('images/status-conflict.png');}
+.wikisync .ignored .status{background-image:url('images/status-ignored.png');}
+.wikisync .missing .status{background-image:url('images/status-missing.png');}
+.wikisync .modified .status{background-image:url('images/status-modified.png');}
+.wikisync .new .status{background-image:url('images/status-new.png');}
+.wikisync .outdated .status{background-image:url('images/status-outdated.png');}
+.wikisync .synced .status{background-image:url('images/status-synced.png');}
+.wikisync .unknown .status{background-image:url('images/status-unknown.png');}
+.wikisync .progress .status{background-image:url('images/loading.gif') !important;}
+.wikisync .wikisync-list{padding:0;margin:0 0 12px 0;}.wikisync .wikisync-list ul,.wikisync .wikisync-list li,.wikisync .wikisync-list p{padding:0;margin:0;list-style:none;}
+.wikisync .wikisync-list p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:26px;line-height:26px;}
+.wikisync .wikisync-list .controls{display:none;float:right;width:200px;margin-left:12px;}
+.wikisync .wikisync-list .hover>.controls{display:inline-block;}
+.wikisync .wikisync-list .indent{padding-left:68px;}
+.wikisync .wikisync-list .error{color:#c00;font-style:italic;}
+.wikisync .wikisync-form ul,.wikisync .wikisync-form li{list-style:none;}
 .wikisync-panel{position:absolute;background-color:#F7F7F0;border:1px outset #998;padding:12px;width:260px;z-index:100;right:10px;top:10px;text-align:center;}.wikisync-panel .close{position:absolute;top:4px;right:8px;}
 .wikisync-panel .last-synced{font-style:italic;font-size:smaller;text-align:center;color:#999999;}

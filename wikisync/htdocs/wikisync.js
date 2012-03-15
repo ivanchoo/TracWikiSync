@@ -10,50 +10,53 @@
         'local_version', 
         'status'
     ];
+    
+    var TREE_NODE_TEMPLATE = 
+		'<li id="<%- cid %>" class="<%- status %>">' +
+		'  <p class="controls">' +
+		'    <a href="<%- remoteUrl %>" class="ext-link" target="_blank"><i class="icon">&nbsp;</i>Remote</a>' +
+		'    <i>or</i>' +
+		'    <a href="#" class="ignore">Ignore</a>' +
+		'    <a href="#" class="unignore">Unignore</a>' +
+		'  </p>' +
+		'  <p>' +
+		'    <i class="status"><%- status.toUpperCase() %></i>' +
+		'	 <a  style="margin-left:<%= level * 10 %>px" href="<%- localUrl %>"><%= name %></a>' +
+		'  </p>' +
+		'  <% if (error) { %>' +
+		'    <p class="indent error"><strong>Error:</strong> <%- error %></p>' +
+		'  <% } else if (status == "conflict") { %>' +
+		'    <p class="indent">' +
+        '      <label for="<%- cid %>-skip" class="<%= resolve == "skip" ? "selected" : "" %>">' +
+        '        <input type="radio" value="skip" id="<%- cid %>-skip" class="resolve" name="<%- cid %>" <%= resolve == "skip" ? checked="checked" : "" %> />' +
+        '        Decide later' +
+        '      </label>' +
+        '      <label for="<%- cid %>-modified" class="<%= resolve == "modified" ? "selected" : "" %>">' +
+        '        <input type="radio" value="modified" id="<%- cid %>-modified" class="resolve" name="<%- cid %>" <%= resolve == "modified" ? checked="checked" : "" %> />' +
+        '        Update to <%- remoteServer %>' +
+        '      </label>' +
+        '      <label for="<%- cid %>-outdated" class="<%= resolve == "outdated" ? "selected" : "" %>">' +
+        '        <input type="radio" value="outdated" id="<%- cid %>-outdated" class="resolve" name="<%- cid %>" <%= resolve == "outdated" ? checked="checked" : "" %> />' +
+        '        Copy from <%- remoteServer %>' +
+        '      </label>' +
+        '    </p>' +
+		'  <% } %>' + 
+		'</li>';
+
+	var TREE_NESTED_NODE_TEMPLATE = 
+		'<li>' +
+		'  <p class="controls">' +
+		'    <a href="#" class="ignore-all">Ignore All</a>' +
+		'    <i>or</i>' +
+		'    <a href="#" class="unignore-all">Unignore All</a>' +
+		'  </p>' +
+		'  <p class="indent"><strong style="margin-left:<%= level * 10 %>px"><%= name %></strong></p>' +
+		'  <ul><%= nested %></ul>' +
+		'</li>';
 
 	var SPLIT_NUMBER_REGEX = new RegExp('([0-9.]+)', 'g');
 	var SPLIT_REGEX = new RegExp('(/| |_)', 'g');
 	var SPLIT_CAMELCASE_REGEX = new RegExp('([a-z])([A-Z])(?=[a-z])');
-	
-	var TREE_NODE_TEMPLATE = 
-		'<li id="<%- cid %>" class="<%- status %>">' + 
-		'  <div class="item-wrapper">' +
-		'    <a href="<%- localUrl %>" target="_blank"><%= name %></a>' + 
-		'    <% if (status == "conflict") { %>' +
-		'      <span class="resolve-wrapper">' +
-		'        <i>Resolve as:</i>' +
-        '        <label for="<%- cid %>-skip">' +
-        '          <input type="radio" value="skip" id="<%- cid %>-skip" class="resolve" name="<%- cid %>" checked="checked" /> Skip' +
-        '        </label>' +
-        '        <label for="<%- cid %>-modified" class="modified">' +
-        '          <input type="radio" value="modified" id="<%- cid %>-modified" class="resolve" name="<%- cid %>" /> Modified' +
-        '        </label>' +
-        '        <label for="<%- cid %>-outdated" class="outdated">' +
-        '          <input type="radio" value="outdated" id="<%- cid %>-outdated" class="resolve" name="<%- cid %>" /> Outdated' +
-        '        </label>' +
-        '      </span>' +
-		'    <% } %>' + 
-		'    <div class="controls">' + 
-		'      <a href="<%- remoteUrl %>" target="_blank">❏ View Remote</a>' + 
-		'      <i>or</i>' + 
-		'      <a href="#" class="ignore-item">✘ Ignore</a>' + 
-		'      <a href="#" class="unignore-item">✔ Unignore</a>' + 
-		'    </div>' + 
-		'  </div>' +
-		'</li>';
-	
-	var TREE_NESTED_NODE_TEMPLATE = 
-		'<li id="<%- cid %>" class="grouped">' + 
-		'  <div class="item-wrapper">' + 
-		'    <strong><%= name %></strong>' + 
-		'    <span class="controls">  ' + 
-		'      <a href="#" class="unignore-all">✔✔ Unignore All</a>' + 
-		'      <i> or </i>' + 
-		'      <a href="#" class="ignore-all">✘✘ Ignore All</a>' + 
-		'    </span>' + 
-		'  </div>' +
-		'  <ul class="nested"><%= nested %></ul>' +
-		'</li>';
 	
 	/*
 	 * Splits the model name by camelcase, numbers, forward slash
@@ -117,6 +120,10 @@
 			stack = [groupByFirstTokenKeyword(tokenizeModelByName(models), '', results)],
 			state, key, subEntries, subNodes, parent, name, subKey;
 		while(true) {
+			/* Using recursive callbacks results in Maximum stack call exceeded error
+			 * in browsers when handling large number of models. Had to resort to 
+			 * manually managing a stack to work avoid using recursive callbacks.
+			 */
 			state = stack[0];
 			if (!state.subKeys.length) {
 				parent = stack[1];
@@ -159,7 +166,8 @@
 	var WikiSyncModel = Backbone.Model.extend({
 		defaults: {
 			resolve: 'skip',
-			status: 'unknown'
+			status: 'unknown',
+			error: null
 		},
 		initialize: function() {
 
@@ -211,14 +219,17 @@
 					model.trigger('progress', model);
 				},
 				complete: function(xhr, status) {
+					if (status == 'error') {
+						model.set({ error:xhr.responseText });
+					}
 					model.trigger('complete', model, status, action);
 				}
 			});
 		},
 		ignore: function(models, isIgnore) {
+			if (!models || !models.length) return;
 			var self = this;
-			var batch = models.splice(0, 10);
-			var data = _.map(batch, function(model) {
+			var data = _.map(models, function(model) {
 				return { name:'name', value:model.get('name') };
 			});
 			data.push({ name:'action', value:'resolve' });
@@ -226,17 +237,17 @@
 			this._post({ 
 				data:data,
 				beforeSend: function() {
-					_.each(batch, function(model) {
+					_.each(models, function(model) {
 						model.trigger('progress', model);
 					});
 				},
 				complete: function(xhr, status) {
-					_.each(batch, function(model) {
+					_.each(models, function(model) {
+						if (status == 'error') {
+							model.set({ error:xhr.responseText });
+						}
 						model.trigger('complete', model, status, isIgnore ? 'ignore' : 'unignore');
 					});
-					if (models.length) {
-						self.ignore(models, isIgnore);
-					}
 				}
 			});
 		},
@@ -262,15 +273,12 @@
 							var name = item[0];
 							var model = map[name];
 							if (model) {
+								model.unset('error', { silent:true });
 								model.set(model.parse(item));
 							} else {
 								self.add([data], { parse:true });
 							}
 						});
-					},
-					error: function(xhr, status, err) {
-						/* todo */
-						console.log(arguments);
 					}
 				}, opts)
 			);
@@ -278,254 +286,6 @@
 		}
 	});
 	
-	/* Main wikisync view */
-	var WikiSyncView = Backbone.View.extend({
-		events: {
-			'click .ignore-item,.ignore-all': 'onIgnore',
-			'click .unignore-item,.unignore-all': 'onIgnore',
-			'click button.submit': 'onSync',
-			'change input.resolve': 'onResolve',
-			'change #filter-conflict-resolve': 'onGlobalResolve',
-			'change input.filter': 'onFilter'
-		},
-		initialize: function(opts) {
-			_.bindAll(this);
-			this.localUrl = opts['localUrl'] || '';
-			this.remoteUrl = opts['remoteUrl'] || '';
-			this.nodeTemplate = _.template(TREE_NODE_TEMPLATE);
-			this.nestedNodeTemplate = _.template(TREE_NESTED_NODE_TEMPLATE);
-			this.$controls = this.$('#wikisync-controls');
-			this.$list = this.$('#wikisync-list');
-			this.collection.formToken = this.$controls.find('input[name~=__FORM_TOKEN]').val();
-			this.collection.bind('all', this.onCollectionChange);
-		},
-		render: function() {
-			this.renderTree();
-			return this;
-		},
-		renderTree: function() {
-			var filterKeys = { 'unknown':true };
-			this.$('input.filter').each(function() {
-				var el = $(this);
-				var val = $(this).val();
-				if (val && el.is(':checked')) {
-					filterKeys[val] = true;
-				}
-			});
-			var filtered = this.collection.filter(function(model) {
-				return filterKeys[model.get('status')];
-			});
-			var filterHash = _.map(filtered, function(model) {
-				return model.cid;
-			}).join('');
-			if (filterHash != this.filterHash) {
-				/* avoid expensive redraw by comparing filterHash */
-				var tree = groupByModelNameHierachy(filtered);
-				var content = _.map(tree, this.formatTreeNode);
-				this.$list.find('div.item-wrapper').unbind('mouseover mouseout');
-				this.$list.empty().html(content.join(''));
-				this.$list.find('div.item-wrapper').hover(this.onListOver, this.onListOut);
-				this.filterHash = filterHash;
-			}
-			return this;
-		},
-		formatTreeNode: function(node) {
-			if (_.isArray(node)) {
-				var data = {
-					cid: _.uniqueId("grouped"),
-					name: node[0],
-					nested: _.map(node[1], this.formatTreeNode, this).join('')
-				};
-				return this.nestedNodeTemplate(data);
-			} else {
-				var data = node.toJSON();
-				var name = node.get('name');
-				data['cid'] = node.cid;
-				data['localUrl'] = formatUrl(this.localUrl, name);
-				data['remoteUrl'] = formatUrl(this.remoteUrl, 'wiki', name);
-				return this.nodeTemplate(data);
-			}
-		},
-		sync: function(bool) {
-			if (_.isUndefined(bool)) {
-				bool = !_.isArray(this.syncPending);
-			}
-			if (bool == _.isArray(this.syncPending)) return;
-			var inputs = this.$('input,select');
-			if (!bool) {
-				this.$el.removeClass('wikisync-progress');
-				inputs.removeAttr('disabled');
-				this.syncPending = null;
-			} else {
-				this.$el.addClass('wikisync-progress');
-				inputs.attr('disabled', 'disabled');
-				var collection = this.collection,
-					pending = [],
-					el, model;
-				this.$list.find('li').each(function() {
-					el = $(this);
-					if (el.is('.grouped,.ignored,.synced')) {
-						return true;
-					}
-					model = collection.getByCid(el.attr('id'));
-					if (!model) return true;
-					pending.push(model);
-					
-				});
-				this.syncPending = pending;
-				this.errors = 0;
-				this.syncNext();
-			}
-			return this;
-		},
-		syncNext: function() {
-			if (this.errors > 5) {
-				alert('Synchronization is stopped as too many error has occurred');
-				this.sync(false);
-			}
-			var model = this.syncPending ? this.syncPending.shift() : null;
-			if (!model) {
-				this.sync(false);
-				alert('Synchronization complete');
-			} else {
-				var resolveAs;
-				if (model.get('status') == 'conflict') {
-					resolveAs = $('#filter-conflict-resolve').val() || model.get('resolve');
-					if (resolveAs == 'skip') {
-						this.syncNext();
-						return;
-					}
-				}
-				this.collection.sync(model, resolveAs);
-			}
-		},
-		onCollectionChange: function(type, model, status, action) {
-			var el = model && model.cid ? this.$('#' + model.cid) : null;
-			var wrapper = el.find('.item-wrapper');
-			if (type == 'change') {
-				if (el.length) {
-					el.find('div.item-wrapper').unbind('mouseover mouseout');
-					var newEl = $(this.formatTreeNode(model)).hide();
-					el.replaceWith(newEl);
-					newEl.find('div.item-wrapper').hover(this.onListOver, this.onListOut);
-					newEl.fadeIn();
-				}
-			} else if (type == 'progress') {
-				wrapper.append('<i>In progress..</i>');
-			} else if (type == 'complete') {
-				if (status != 'success') {
-					this.error++;
-				}
-				switch(action) {
-					case 'pull':
-						wrapper.append('<i> (updated with newer version from remote server)</i>');
-						break;
-					case 'push':
-						wrapper.append('<i> (posted to remote server)</i>');
-						break;
-					case 'ignore':
-						wrapper.append('<i> (is now ignored)</i>');
-						break;
-					case 'unignore':
-						wrapper.append('<i> (is not unignored)</i>');
-						break;
-				}
-				if (this.syncPending) {
-					this.syncNext();
-				}
-			}
-		},
-		onFilter: function(evt) {
-			var el = $(evt.target);
-			var li = el.parents('li');
-			if (el.is(':checked')) {
-				li.addClass('selected');
-			} else {
-				li.removeClass('selected');
-			}
-			this.renderTree();
-		},
-		onSync: function(evt) {
-			evt.preventDefault();
-			this.sync(!this.syncPending);
-		},
-		onListOver: function(evt) {
-			this.onListOut();
-			if (!this.syncPending) {
-				this.hover = $(evt.target).parent('li').addClass('hover');
-			}
-		},
-		onListOut: function(evt) {
-			if (this.hover) {
-				this.hover.removeClass('hover');
-				this.hover = null;
-			}
-		},
-		onResolve: function(evt) {
-			var input = $(evt.target);
-			var id = input.attr('name');
-			var model = this.collection.getByCid(id);
-			if (model) {
-				model.set({ resolve:input.val() }, { silent:true });
-			}
-		},
-		onGlobalResolve: function(evt) {
-			var val = $(evt.target).val(),
-				conflicts = this.collection.filter(function(model) {
-					return model.get('status') == 'conflict';
-				});
-			if (val) {
-				_.each(conflicts, function(model) {
-					this.$('#' + model.cid + ' input.resolve')
-						.val([val])
-						.attr('disabled', 'disabled');
-				}, this);
-			} else {
-				_.each(conflicts, function(model) {
-					val = model.get('resolve') || 'skip';
-					this.$('#' + model.cid + ' input.resolve')
-						.removeAttr('disabled')
-						.val([val]);
-				}, this);
-			}
-		},
-		onIgnore: function(evt) {
-			evt.preventDefault();
-			var target = $(evt.target);
-			var isIgnore = true;
-			var isGlobal = !target.parent().is('.controls');
-			var li = isGlobal ? this.$list : target.parents('li:first');
-			if (target.hasClass('ignore-all')) {
-				li = li.find('li');
-			} else if (target.hasClass('unignore-all')) {
-				li = li.find('li');
-				isIgnore = false
-			} else if (target.hasClass('unignore-item')) {
-				isIgnore = false;
-			}
-			var clz = isIgnore ? 'ignored' : 'unignored';
-			var models = [];
-			_.each(li, function(el) {
-				el = $(el);
-				if (el.hasClass('grouped')) return;
-				else if (isIgnore && el.hasClass('ignored')) return;
-				else if (!isIgnore && !el.hasClass('ignored')) return;
-				models.push(this.collection.getByCid(el.attr('id')));
-			}, this);
-			var num = models.length;
-			var verb = isIgnore ? 'ignored' : 'unignored';
-			if (num) {
-				if (num > 30) {
-					if (!confirm('Do you want to ' + verb + ' ' + num + ' wikies?')) {
-						return;
-					}
-				}
-				this.collection.ignore(models, isIgnore);
-			} else {
-				alert('All wikies are already ' + verb);
-			}
-		}
-	});
 	
 	/* Wikisync pulldown panel as seen at the navigation context menu */
 	var WikiSyncPageView = Backbone.View.extend({
@@ -572,6 +332,325 @@
 				.removeAttr('disabled');
 		}
 	});
+	
+	/* Main wikisync view */
+	var WikiSyncView = Backbone.View.extend({
+		events: {
+			'click #wikisync-form input[type="submit"]': 'onSync',
+			'change #wikisync-form input.filter': 'onFilter',
+			'change #filter-conflict-resolve': 'onGlobalResolve',
+			'change #wikisync-list input.resolve': 'onResolve',
+			'mouseover #wikisync-list': 'onListOver',
+			'mouseout #wikisync-list': 'onListOut',
+			'click .ignore,.ignore-all': 'onIgnore',
+			'click .unignore,.unignore-all': 'onIgnore'
+		},
+		initialize: function(opts) {
+			_.bindAll(this);
+			this.localUrl = opts['localUrl'] || '';
+			this.remoteUrl = opts['remoteUrl'] || '';
+			this.nodeTemplate = _.template(TREE_NODE_TEMPLATE);
+			this.nestedNodeTemplate = _.template(TREE_NESTED_NODE_TEMPLATE);
+			this.$form = this.$('#wikisync-form');
+			this.$list = this.$('#wikisync-list');
+			this.collection.formToken = this.$form.find('input[name~=__FORM_TOKEN]').val();
+			this.collection.bind('all', this.onCollectionChange);
+		},
+		render: function() {
+			this.renderTree();
+			return this;
+		},
+		renderTree: function(force) {
+			if (force) {
+				this.filterHash = '__force__';
+			}
+			var filterKeys = { 'unknown':true },
+				$input;
+			this.$('input.filter').each(function() {
+				$input = $(this);
+				if ($input.is(':checked')) {
+					filterKeys[$input.val()] = true;
+				}
+			});
+			var filtered = this.collection.filter(function(model) {
+				return filterKeys[model.get('status')];
+			});
+			var filterHash = _.map(filtered, function(model) {
+				return model.cid;
+			}).join('');
+			if (filterHash != this.filterHash) {
+				/* avoid expensive redraw by comparing filterHash */
+				var tree = groupByModelNameHierachy(filtered);
+				if (tree.length) {
+					tree = [['Everything', tree]];
+					var content = _.map(tree, function(child) {
+						return this.formatTreeNode(child, 0);
+					}, this)
+					this.$list.empty().html(content.join(''));
+				} else {
+					this.$list.empty();
+				}
+				this.filterHash = filterHash;
+			}
+			return this;
+		},
+		formatTreeNode: function(node, level) {
+			level = level || 0;
+			if (_.isArray(node)) {
+				var data = {
+					cid: _.uniqueId("group"),
+					name: node[0],
+					level: level,
+					nested: _.map(node[1], function(child) {
+						return this.formatTreeNode(child, level + 1)
+					}, this).join('')
+				};
+				return this.nestedNodeTemplate(data);
+			} else {
+				var data = node.toJSON();
+				var name = node.get('name');
+				var data = $.extend({
+					cid: node.cid,
+					level: level,
+					localUrl: formatUrl(this.localUrl, name),
+					remoteUrl: formatUrl(this.remoteUrl, 'wiki', name),
+					error: null,
+					resolve: 'skip',
+					remoteServer: this.options.remoteServer
+				}, node.toJSON());
+				return this.nodeTemplate(data);
+			}
+		},
+		sync: function(bool) {
+			if (_.isUndefined(bool)) {
+				bool = !_.isArray(this.syncPending);
+			}
+			if (bool == _.isArray(this.syncPending)) return;
+			var $inputs = this.$('input,select');
+			if (!bool) {
+				$inputs.removeAttr('disabled');
+				this.syncPending = null;
+			} else {
+				$inputs.attr('disabled', 'disabled');
+				var collection = this.collection,
+					pending = [],
+					$el, model;
+				this.$list.find('li').each(function() {
+					$el = $(this);
+					if ($el.is('.grouped,.ignored,.synced')) {
+						return true;
+					}
+					model = collection.getByCid($el.attr('id'));
+					if (!model) return true;
+					pending.push(model);
+					
+				});
+				this.syncPending = pending;
+				this.errors = 0;
+				this.syncNext();
+			}
+			return this;
+		},
+		syncNext: function() {
+			if (this.errors > 5) {
+				alert('Synchronization is stopped as too many error has occurred');
+				this.sync(false);
+			}
+			var model = this.syncPending ? this.syncPending.shift() : null;
+			if (!model) {
+				this.sync(false);
+				this.errors = 0;
+				alert('Synchronization complete');
+			} else {
+				var resolveAs;
+				if (model.get('status') == 'conflict') {
+					resolveAs = $('#filter-conflict-resolve').val() || model.get('resolve');
+					if (resolveAs == 'skip') {
+						this.syncNext();
+						return;
+					}
+				}
+				this.collection.sync(model, resolveAs);
+			}
+			return this;
+		},
+		updateResolveInput: function(model, value, disabled) {
+			var $input,
+				$inputs = this.$('#' + model.cid + ' input.resolve');
+			if ($inputs.is(':disabled') != disabled) {
+				if (disabled) {
+					$inputs.attr('disabled', 'disabled');
+				} else {
+					$inputs.removeAttr('disabled');
+				}
+			}
+			$inputs.each(function() {
+				$input = $(this);
+				if ($input.attr('value') == value) {
+					$input.parent().addClass('selected');
+					$input.attr('checked', 'checked');
+				} else {
+					$input.parent().removeClass('selected');
+					$input.removeAttr('checked');
+				}
+			});
+			return this;
+		},
+		drawPendingModel: function(model) {
+			if (!this.redrawPending) return this;
+			if (this.redrawPending.length > 10) {
+				/* cheaper to just redraw everything */
+				this.renderTree(true);
+			} else {
+				var model, $el, $new;
+				_.each(this.redrawPending, function(model) {
+					var $el = this.$('#' + model.cid);
+					if ($el.length) {
+						var $new = $(this.formatTreeNode(model)).hide();
+						$el.replaceWith($new);
+						$new.fadeIn();
+					}
+				}, this);
+			}
+			this.redrawPending = null;
+			return this;
+		},
+		onCollectionChange: function(type, model, status, action) {
+			if (type == 'change') {
+				if (!this.redrawPending) {
+					this.redrawPending = [model];
+					_.defer(this.drawPendingModel);
+				} else {
+					this.redrawPending.push(model);
+				}
+				return;
+			}
+			var $el = model && model.cid ? this.$('#' + model.cid) : null;
+			if (type == 'progress') {
+				$el.addClass('progress');
+			} else if (type == 'complete') {
+				$el.removeClass('progress');
+				if (status != 'success') {
+					this.error++;
+				}
+				if (this.syncPending) {
+					this.syncNext();
+				}
+			}
+		},
+		onSync: function(evt) {
+			evt.preventDefault();
+			this.sync(!this.syncPending);
+		},
+		onFilter: function(evt) {
+			var $el = $(evt.target);
+			if ($el.is(':checked')) {
+				$el.parent().addClass('selected');
+			} else {
+				$el.parent().removeClass('selected');
+			}
+			this.renderTree();
+		},
+		onListOver: function(evt) {
+			var $el = $(evt.target);
+			if (!$el.is('li')) {
+				$el = $el.parent();
+			}
+			if ($el.is('li')) {
+				if (this.$hover) {
+					this.$hover.removeClass('hover');
+				}
+				this.$hover = $el.addClass('hover');
+			}
+		},
+		onListOut: _.debounce(function(evt) {
+			if (!this.$hover) return;
+			/* Easiest way is to check if mouse is within the list boundary
+			 * and remove the hover state accordingly */
+			var pos = this.$list.offset(),
+				x = evt.pageX,
+				y = evt.pageY;
+			if (x < pos.left ||
+				y < pos.top ||
+				x > pos.left + this.$list.outerWidth() ||
+				y > pos.top + this.$list.outerHeight()) {
+				this.$hover.removeClass('hover');
+				this.$hover = null;
+			}
+		}, 500),
+		onGlobalResolve: function(evt) {
+			var val = $(evt.target).val(),
+				conflicts = this.collection.filter(function(model) {
+					return model.get('status') == 'conflict';
+				});
+			if (val) {
+				_.each(conflicts, function(model) {
+					this.updateResolveInput(model, val, true);
+				}, this);
+			} else {
+				_.each(conflicts, function(model) {
+					val = model.get('resolve') || 'skip';
+					this.updateResolveInput(model, val, false);
+				}, this);
+			}
+		},
+		onResolve: function(evt) {
+			var $input = $(evt.target);
+			var id = $input.attr('name');
+			var val = $input.val();
+			var model = this.collection.getByCid(id);
+			if (model) {
+				model.set({ resolve:val }, { silent:true });
+			}
+			this.updateResolveInput(model, val, false);
+		},
+		onIgnore: function(evt) {
+			evt.preventDefault();
+			var $target = $(evt.target);
+			var isIgnore = true;
+			var $li = $target.parents('li:first');
+			if ($target.hasClass('ignore-all')) {
+				$li = $li.find('li');
+			} else if ($target.hasClass('unignore-all')) {
+				$li = $li.find('li');
+				isIgnore = false
+			} else if ($target.hasClass('unignore')) {
+				isIgnore = false;
+			}
+			var clz = isIgnore ? 'ignored' : 'unignored';
+			var models = [], 
+				collection = this.collection,
+				model;
+			$li.each(function() {
+				var $el = $(this);
+				if ($el.hasClass('group')) {
+					return;
+				} else if (isIgnore && $el.hasClass('ignored')) {
+					return;
+				} else if (!isIgnore && !$el.hasClass('ignored')) {
+					return;
+				}
+				model = collection.getByCid($el.attr('id'));
+				if (model) {
+					models.push(model);
+				}
+			});
+			var num = models ? models.length : 0;
+			var verb = isIgnore ? 'ignored' : 'unignored';
+			if (num) {
+				if (num > 30) {
+					if (!confirm('Do you want to ' + verb + ' ' + num + ' pages?')) {
+						return;
+					}
+				}
+				this.collection.ignore(models, isIgnore);
+			} else {
+				alert('All wikies are already ' + verb);
+			}
+		}
+		
+	});
+	
 	
 	var root = this;
 	root.wikisync = {
