@@ -41,7 +41,7 @@ from wikisync.util import jsonify, server_name, safe_urlencode, safe_url
   <!-- !Start rendering -->
   
   <a id="wikisync-panel-close" class="close" href="#">Close</a>
-  <h2 class="status ${model.status}-big">${model.status.upper()}</h2>
+  <h2 class="${model.status}"><i class="status-badge">${model.status.upper()}</i></h2>
   
   <py:choose test="model.status">
     <!-- !synced -->

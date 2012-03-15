@@ -8,7 +8,8 @@
 .wikisync .hover{background-color:#FFFFBF;}
 .wikisync label{color:#999999;}
 .wikisync label.selected{color:#000;}
-.wikisync .status{background-repeat:no-repeat;background-position:center center;min-width:64px;text-indent:-1000px;display:inline-block;}
+.wikisync .status{background-repeat:no-repeat;background-position:center center;min-width:64px;text-indent:-1000px;text-align:left;display:inline-block;}
+.wikisync .status-badge{background-repeat:no-repeat;background-position:center center;min-width:120px;text-indent:-1000px;text-align:left;display:inline-block;}
 .wikisync .conflict .status{background-image:url('images/status-conflict.png');}
 .wikisync .ignored .status{background-image:url('images/status-ignored.png');}
 .wikisync .missing .status{background-image:url('images/status-missing.png');}
@@ -18,6 +19,15 @@
 .wikisync .synced .status{background-image:url('images/status-synced.png');}
 .wikisync .unknown .status{background-image:url('images/status-unknown.png');}
 .wikisync .progress .status{background-image:url('images/loading.gif') !important;}
+.wikisync .conflict .status-badge{background-image:url('images/status-conflict-big.png');}
+.wikisync .ignored .status-badge{background-image:url('images/status-ignored-big.png');}
+.wikisync .missing .status-badge{background-image:url('images/status-missing-big.png');}
+.wikisync .modified .status-badge{background-image:url('images/status-modified-big.png');}
+.wikisync .new .status-badge{background-image:url('images/status-new-big.png');}
+.wikisync .outdated .status-badge{background-image:url('images/status-outdated-big.png');}
+.wikisync .synced .status-badge{background-image:url('images/status-synced-big.png');}
+.wikisync .unknown .status-badge{background-image:url('images/status-unknown-big.png');}
+.wikisync .progress .status-badge{background-image:url('images/loading.gif') !important;}
 .wikisync .wikisync-list{padding:0;margin:0 0 12px 0;}.wikisync .wikisync-list ul,.wikisync .wikisync-list li,.wikisync .wikisync-list p{padding:0;margin:0;list-style:none;}
 .wikisync .wikisync-list p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:26px;line-height:26px;}
 .wikisync .wikisync-list .controls{display:none;float:right;width:200px;margin-left:12px;}

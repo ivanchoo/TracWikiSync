@@ -239,9 +239,13 @@ class WikiSyncPagePlugin(Component, WikiSyncMixin):
                 add_ctxtnav(req,
                     tag.span(
                         tag.a(
-                            Markup("&darr;"), 
+                            tag.i(
+                                item.status.upper(),
+                                class_="status"
+                            ),
+                            Markup("&darr;"),
                             href="#", 
-                            class_="status %s" % item.status,
+                            class_=item.status,
                             id_="wikisync-panel-toggle"
                         ),
                         class_="wikisync"
@@ -308,6 +312,7 @@ class WikiSyncPlugin(Component, WikiSyncMixin):
         else:
             names = [name for name in names if name]
         error = None
+        wc = None
         try:
             wc = self._get_web_client()
             if action == "refresh":
@@ -407,7 +412,8 @@ class WikiSyncPlugin(Component, WikiSyncMixin):
             error = e
             self.log.exception(e)
         finally:
-            wc.close()
+            if wc:
+                wc.close()
         if req.get_header("X-Requested-With") == "XMLHttpRequest" or \
             req.get_header("HTTP_X_REQUESTED_WITH") == "XMLHttpRequest":
             if error:

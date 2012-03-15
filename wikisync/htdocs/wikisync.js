@@ -161,6 +161,12 @@
 		}
 		return base + encodeURI(_.rest(arguments).join('/'));
 	};
+	
+	var isRegExp = function(str) {
+		return _.detect('^$.()[]|'.split(''), function(c) {
+			return str.indexOf(c) >= 0;
+		}) != undefined;
+	}
     
     /* Represents a wiki synchronization state */
 	var WikiSyncModel = Backbone.Model.extend({
@@ -339,6 +345,7 @@
 			'click #wikisync-form input[type="submit"]': 'onSync',
 			'change #wikisync-form input.filter': 'onFilter',
 			'change #filter-conflict-resolve': 'onGlobalResolve',
+			'keydown #filter-text': 'onFilterTextChange',
 			'change #wikisync-list input.resolve': 'onResolve',
 			'mouseover #wikisync-list': 'onListOver',
 			'mouseout #wikisync-list': 'onListOut',
@@ -353,6 +360,7 @@
 			this.nestedNodeTemplate = _.template(TREE_NESTED_NODE_TEMPLATE);
 			this.$form = this.$('#wikisync-form');
 			this.$list = this.$('#wikisync-list');
+			this.$empty = this.$('#wikisync-empty');
 			this.collection.formToken = this.$form.find('input[name~=__FORM_TOKEN]').val();
 			this.collection.bind('all', this.onCollectionChange);
 		},
@@ -365,7 +373,15 @@
 				this.filterHash = '__force__';
 			}
 			var filterKeys = { 'unknown':true },
-				$input;
+				filterKeyword = this.$('#filter-text').val(),
+				filterRegExp, $input, name;
+			if (filterKeyword && isRegExp(filterKeyword)) {
+				try {
+					filterRegExp = new RegExp(filterKeyword);
+				} catch(err) {
+					/* ignore */
+				}
+			}
 			this.$('input.filter').each(function() {
 				$input = $(this);
 				if ($input.is(':checked')) {
@@ -373,9 +389,19 @@
 				}
 			});
 			var filtered = this.collection.filter(function(model) {
-				return filterKeys[model.get('status')];
+				if (filterKeys[model.get('status')]) {
+					if (filterKeyword) {
+						name = model.get('name');
+						if (filterRegExp) {
+							return filterRegExp.exec(name);
+						}
+						return name.indexOf(filterKeyword) >= 0; 
+					}
+					return true;
+				}
+				return false;
 			});
-			var filterHash = _.map(filtered, function(model) {
+			var filterHash = filterKeyword + _.map(filtered, function(model) {
 				return model.cid;
 			}).join('');
 			if (filterHash != this.filterHash) {
@@ -386,9 +412,11 @@
 					var content = _.map(tree, function(child) {
 						return this.formatTreeNode(child, 0);
 					}, this)
-					this.$list.empty().html(content.join(''));
+					this.$list.empty().html(content.join('')).show();
+					this.$empty.hide();
 				} else {
-					this.$list.empty();
+					this.$list.hide().empty();
+					this.$empty.show();
 				}
 				this.filterHash = filterHash;
 			}
@@ -550,6 +578,25 @@
 				$el.parent().removeClass('selected');
 			}
 			this.renderTree();
+		},
+		onFilterTextChange: function(evt) {
+			if (!this.filterLater) {
+				var self = this;
+				this.filterLater = _.debounce(function() {
+					if (self.filterPending) {
+						self.filterPending = false;
+						self.renderTree();
+					}
+				}, 1000);
+			}
+			if (evt.keyCode == 13) {
+				evt.preventDefault();
+				this.filterPending = false;
+				this.renderTree();
+			} else {
+				this.filterPending = true;
+				this.filterLater();
+			}
 		},
 		onListOver: function(evt) {
 			var $el = $(evt.target);

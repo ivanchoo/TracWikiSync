@@ -24,8 +24,11 @@
           <input type="text" name="username" value="${data.username}" placeholder="username" size="28" /> : 
           <input type="password" name="password" value="${data.password}" placeholder="password" size="28" />
           <p class="help">
-            Blah blah blah
-          </p>
+          	You should specify the complete URL to the remote Trac server, 
+          	including the path to the project environment, e.g. "http://192.168.23.31:8080/myproject".
+          	<br />
+          	Login information is required for users with permissions to modify wiki pages.
+        	</p>
         </div>
       </fieldset>
       <fieldset>
@@ -35,13 +38,16 @@
             <textarea name="ignorelist" class="trac-resizable" rows="6" cols="60">${data.ignorelist}</textarea>
           </label>
           <p class="help">
-            Blah blah blah
+            Newly discovered wiki pages will be ignored if the names matches any of the entries. 
+            You can use regular expressions to perform complex matches.
           </p>
         </div>
       </fieldset>
       <p>
-        <input type="submit" value="${_('Apply changes')}" /> 
-        or <a href="${req.href.wikisync(action='refresh')}">Refresh Synchronization Status</a>
+        <input type="submit" value="${_('Apply changes')}" />
+        <py:if test="data.url">
+          or <a href="${req.href.wikisync(action='refresh')}">Refresh Synchronization Status</a>
+        </py:if>
       </p>
     </form>
   </body>

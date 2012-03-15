@@ -18,7 +18,7 @@ def safe_url(prefix, *paths):
     """Safely encode a url path, ensuring the prefix has no tailing slash
     and the path fragment is uses the %%xx escape."""
     if prefix.endswith("/"):
-        prefix = host[-1]
+        prefix = prefix[-1]
     if paths:
         suffix = "/".join(paths)
         if suffix.startswith("/"):

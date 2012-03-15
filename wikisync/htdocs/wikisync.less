@@ -45,6 +45,15 @@
 		background-position: center center;
 		min-width: 64px;
 		text-indent: -1000px;
+		text-align: left;
+		display: inline-block;
+	}
+	.status-badge {
+		background-repeat: no-repeat;
+		background-position: center center;
+		min-width: 120px;
+		text-indent: -1000px;
+		text-align: left;
 		display: inline-block;
 	}
 	.conflict .status {
@@ -72,6 +81,33 @@
 		.status-image('unknown');
 	}
 	.progress .status {
+		background-image: url('images/loading.gif') !important;
+	}
+	.conflict .status-badge {
+		.status-image('conflict-big');
+	}
+	.ignored .status-badge {
+		.status-image('ignored-big');
+	}
+	.missing .status-badge {
+		.status-image('missing-big');
+	}
+	.modified .status-badge {
+		.status-image('modified-big');
+	}
+	.new .status-badge {
+		.status-image('new-big');
+	}
+	.outdated .status-badge {
+		.status-image('outdated-big');
+	}
+	.synced .status-badge {
+		.status-image('synced-big');
+	}
+	.unknown .status-badge {
+		.status-image('unknown-big');
+	}
+	.progress .status-badge {
 		background-image: url('images/loading.gif') !important;
 	}
 	.wikisync-list {
@@ -110,57 +146,6 @@
 			list-style: none;
 		}
 	}
-	
-	/*
-	.conflict {
-		.status-image('conflict');
-	}
-	.ignored {
-		.status-image('ignored');
-	}
-	.missing {
-		.status-image('missing');
-	}
-	.modified {
-		.status-image('modified');
-	}
-	.new {
-		.status-image('new');
-	}
-	.outdated {
-		.status-image('outdated');
-	}
-	.synced {
-		.status-image('synced');
-	}
-	.unknown {
-		.status-image('unknown');
-	}
-	.conflict-big {
-		.status-image('conflict-big');
-	}
-	.ignored-big {
-		.status-image('ignored-big');
-	}
-	.missing-big {
-		.status-image('missing-big');
-	}
-	.modified-big {
-		.status-image('modified-big');
-	}
-	.new-big {
-		.status-image('new-big');
-	}
-	.outdated-big {
-		.status-image('outdated-big');
-	}
-	.synced-big {
-		.status-image('synced-big');
-	}
-	.unknown-big {
-		.status-image('unknown-big');
-	}
-	*/
 }
 
 .wikisync-panel {

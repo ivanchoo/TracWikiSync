@@ -18,7 +18,8 @@
     <div id="ctxtnav" class="nav"></div>
     <div id="wikisync" class="wikisync" py:choose="">
       <py:when test="not remote_url">
-      	<p>No Config</p>
+      	<h1>Wiki Synchronization</h1>
+				<p class="center">No remote server configuration found. Configure the remote server <a href="${req.href.admin('general', 'wikisync')}">here</a>.</p>
       </py:when>
       <py:otherwise>
 				<form id="wikisync-form" method="post" class="wikisync-form">
@@ -26,7 +27,7 @@
 						<legend>Wiki Synchronization</legend>
 						<fieldset style="float:right;">
 							<legend>Filter Wiki Name</legend>
-							<input type="text" value="" placeholder="'Keyword' or '^Regular.*Expression$'" style="width:240px" />
+							<input type="text" value="" id="filter-text" placeholder="'Keyword' or '^Regular.*Expression$'" style="width:240px" />
 						</fieldset>
 						<ul class="wikisync-form-list">
 							<li class="modified">
@@ -93,39 +94,8 @@
 				</form>
 				<h1>Wiki Status</h1>
 				<ul id="wikisync-list" class="wikisync-list">
-					<!-- !
-				  <li class="modified">
-				  	<p class="controls">
-  				    <a href="#" class="ext-link"><i class="icon">&nbsp;</i>Remote</a>
-  				    <i>or</i>
-  				    <a href="#">Ignore</a>
-  				  </p>
-				  	<p>
-  				    <i class="status">MODIFIED</i>
-  				    <a href="#">WikiStart/WikiStart/WikiStart/WikiStart/WikiStart/WikiStart/WikiStart/WikiStart/WikiStart/WikiStart/WikiStart/WikiStart/</a>
-  				  </p>
-  				  <p class="hint">
-  				    In progress...
-  				  </p>
-				  </li>
-				  <li>
-				    <p class="controls">
-  				    <a href="#">Ignore All</a>
-  				    <i>or</i>
-  				    <a href="#">Unignore All</a>
-  				  </p>
-				    <p class="group">
-  				    <strong>WikiFoo</strong>
-  				  </p>
-				    <ul>
-							<li class="synced">
-								<i class="icon">SYNCED</i>
-								<a href="#">WikiStart</a>
-							</li>
-				    </ul>
-				  </li>
-				  -->
 				</ul>
+				<p id="wikisync-empty" class="center" style="display:none">No matching page found. Try changing the filter options.</p>
 				<script type="text/javascript">
 					$(function() {
 						var ns = wikisync;
