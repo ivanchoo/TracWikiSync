@@ -498,7 +498,7 @@
 		},
 		syncNext: function() {
 			if (this.errorCount > 5) {
-				alert('Synchronization is stopped as too many error has occurred');
+				alert('Synchronization is interrupted as too many error has occurred');
 				this.sync(false);
 				return;
 			}
@@ -543,7 +543,7 @@
 		},
 		renderPendingModels: function() {
 			if (!this.renderPending) return this;
-			if (this.renderPending.length > 10) {
+			if (this.renderPending.length > 30) {
 				/* cheaper to just redraw everything */
 				this.renderTree(true, this.renderPending);
 			} else {
