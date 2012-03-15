@@ -126,7 +126,7 @@ class WikiSyncEnvironment(Component, WikiSyncMixin):
         item = dao.find(page.name)
         if not item:
             dao.create(item)
-            self.log.debug("Created wikisync '%s'" % item)
+            self.log.debug("Created wikisync '%s'" % item.name)
 
     def wiki_page_changed(self, page, version, t, comment, author, ipnr):
         pass
@@ -137,8 +137,8 @@ class WikiSyncEnvironment(Component, WikiSyncMixin):
         if not item:
             return
         if not item.remote_version:
-            dao.remove(item)
-            self.log.debug("Removed wikisync '%s'" % item)
+            dao.delete(item)
+            self.log.debug("Removed wikisync '%s'" % item.name)
 
     def wiki_page_version_deleted(self, page):
         self.wiki_page_version_deleted(page)

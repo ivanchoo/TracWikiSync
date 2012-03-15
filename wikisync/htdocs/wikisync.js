@@ -346,6 +346,7 @@
 			'change #wikisync-form input.filter': 'onFilter',
 			'change #filter-conflict-resolve': 'onGlobalResolve',
 			'keydown #filter-text': 'onFilterTextChange',
+			'click #filter-text-reset': 'onFilterTextReset',
 			'change #wikisync-list input.resolve': 'onResolve',
 			'mouseover #wikisync-list': 'onListOver',
 			'mouseout #wikisync-list': 'onListOut',
@@ -368,19 +369,23 @@
 			this.renderTree();
 			return this;
 		},
-		renderTree: function(force) {
+		renderTree: function(force, includeModels) {
 			if (force) {
-				this.filterHash = '__force__';
+				this.filterHash = '__refresh__';
 			}
 			var filterKeys = { 'unknown':true },
 				filterKeyword = this.$('#filter-text').val(),
+				filterModels = {},
 				filterRegExp, $input, name;
-			if (filterKeyword && isRegExp(filterKeyword)) {
-				try {
-					filterRegExp = new RegExp(filterKeyword);
-				} catch(err) {
-					/* ignore */
+			if (filterKeyword) {
+				if (isRegExp(filterKeyword)) {
+					try {
+						filterRegExp = new RegExp(filterKeyword);
+					} catch(err) {
+						/* ignore */
+					}
 				}
+				filterKeyword = filterKeyword.toUpperCase();
 			}
 			this.$('input.filter').each(function() {
 				$input = $(this);
@@ -388,14 +393,22 @@
 					filterKeys[$input.val()] = true;
 				}
 			});
+			if (_.isArray(includeModels)) {
+				_.each(includeModels, function(model) {
+					filterModels[model.cid] = true;
+				});
+			}
 			var filtered = this.collection.filter(function(model) {
+				if (filterModels[model.cid]) {
+					return true;
+				}
 				if (filterKeys[model.get('status')]) {
 					if (filterKeyword) {
 						name = model.get('name');
 						if (filterRegExp) {
 							return filterRegExp.exec(name);
 						}
-						return name.indexOf(filterKeyword) >= 0; 
+						return name.toUpperCase().indexOf(filterKeyword) >= 0; 
 					}
 					return true;
 				}
@@ -407,8 +420,9 @@
 			if (filterHash != this.filterHash) {
 				/* avoid expensive redraw by comparing filterHash */
 				var tree = groupByModelNameHierachy(filtered);
+				var hint = '<i class="hint">Displaying ' + filtered.length + ' of ' + this.collection.length + ' pages</i>';
 				if (tree.length) {
-					tree = [['Everything', tree]];
+					tree = [['Everything ' + hint, tree]];
 					var content = _.map(tree, function(child) {
 						return this.formatTreeNode(child, 0);
 					}, this)
@@ -459,7 +473,6 @@
 				$inputs.removeAttr('disabled');
 				this.syncPending = null;
 			} else {
-				$inputs.attr('disabled', 'disabled');
 				var collection = this.collection,
 					pending = [],
 					$el, model;
@@ -471,23 +484,27 @@
 					model = collection.getByCid($el.attr('id'));
 					if (!model) return true;
 					pending.push(model);
-					
 				});
-				this.syncPending = pending;
-				this.errors = 0;
-				this.syncNext();
+				if (!pending.length) {
+					alert('No synchronization required!');
+				} else {
+					$inputs.attr('disabled', 'disabled');
+					this.syncPending = pending;
+					this.errorCount = 0;
+					this.syncNext();
+				}
 			}
 			return this;
 		},
 		syncNext: function() {
-			if (this.errors > 5) {
+			if (this.errorCount > 5) {
 				alert('Synchronization is stopped as too many error has occurred');
 				this.sync(false);
+				return;
 			}
 			var model = this.syncPending ? this.syncPending.shift() : null;
 			if (!model) {
 				this.sync(false);
-				this.errors = 0;
 				alert('Synchronization complete');
 			} else {
 				var resolveAs;
@@ -524,14 +541,14 @@
 			});
 			return this;
 		},
-		drawPendingModel: function(model) {
-			if (!this.redrawPending) return this;
-			if (this.redrawPending.length > 10) {
+		renderPendingModels: function() {
+			if (!this.renderPending) return this;
+			if (this.renderPending.length > 10) {
 				/* cheaper to just redraw everything */
-				this.renderTree(true);
+				this.renderTree(true, this.renderPending);
 			} else {
 				var model, $el, $new;
-				_.each(this.redrawPending, function(model) {
+				_.each(this.renderPending, function(model) {
 					var $el = this.$('#' + model.cid);
 					if ($el.length) {
 						var $new = $(this.formatTreeNode(model)).hide();
@@ -540,16 +557,16 @@
 					}
 				}, this);
 			}
-			this.redrawPending = null;
+			this.renderPending = null;
 			return this;
 		},
 		onCollectionChange: function(type, model, status, action) {
 			if (type == 'change') {
-				if (!this.redrawPending) {
-					this.redrawPending = [model];
-					_.defer(this.drawPendingModel);
+				if (!this.renderPending) {
+					this.renderPending = [model];
+					_.defer(this.renderPendingModels);
 				} else {
-					this.redrawPending.push(model);
+					this.renderPending.push(model);
 				}
 				return;
 			}
@@ -559,7 +576,7 @@
 			} else if (type == 'complete') {
 				$el.removeClass('progress');
 				if (status != 'success') {
-					this.error++;
+					this.errorCount++;
 				}
 				if (this.syncPending) {
 					this.syncNext();
@@ -597,6 +614,12 @@
 				this.filterPending = true;
 				this.filterLater();
 			}
+		},
+		onFilterTextReset: function(evt) {
+			evt.preventDefault();
+			this.$('#filter-text').val('');
+			this.filterPending = false;
+			this.renderTree();
 		},
 		onListOver: function(evt) {
 			var $el = $(evt.target);
@@ -692,7 +715,7 @@
 				}
 				this.collection.ignore(models, isIgnore);
 			} else {
-				alert('All wikies are already ' + verb);
+				alert('All pages are already ' + verb);
 			}
 		}
 		

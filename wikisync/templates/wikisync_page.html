@@ -31,7 +31,7 @@ from wikisync.util import jsonify, server_name, safe_urlencode, safe_url
   <!-- !Macro: Form template -->
   <form py:match="wikisyncform" 
   	action="${req.href.wikisync()}" 
-  	method="GET" 
+  	method="POST" 
   	class="center"
   	py:attrs="select('@*')">
 	  <input type="hidden" name="name" value="${model.name}" />

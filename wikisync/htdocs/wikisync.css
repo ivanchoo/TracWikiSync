@@ -6,10 +6,11 @@
 .wikisync .ignored .unignore{display:inline;}
 .wikisync .ignored .ignore{display:none;}
 .wikisync .hover{background-color:#FFFFBF;}
+.wikisync .hint{font-weight:normal;color:#999999;}
 .wikisync label{color:#999999;}
 .wikisync label.selected{color:#000;}
-.wikisync .status{background-repeat:no-repeat;background-position:center center;min-width:64px;text-indent:-1000px;text-align:left;display:inline-block;}
-.wikisync .status-badge{background-repeat:no-repeat;background-position:center center;min-width:120px;text-indent:-1000px;text-align:left;display:inline-block;}
+.wikisync .status{background-repeat:no-repeat;background-position:center center;min-width:64px;text-indent:-1000px;text-align:left;display:inline-block;overflow:hidden;}
+.wikisync .status-badge{background-repeat:no-repeat;background-position:center center;min-width:120px;text-indent:-1000px;text-align:left;display:inline-block;overflow:hidden;}
 .wikisync .conflict .status{background-image:url('images/status-conflict.png');}
 .wikisync .ignored .status{background-image:url('images/status-ignored.png');}
 .wikisync .missing .status{background-image:url('images/status-missing.png');}

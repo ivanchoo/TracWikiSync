@@ -17,8 +17,9 @@ def jsonify(obj):
 def safe_url(prefix, *paths):
     """Safely encode a url path, ensuring the prefix has no tailing slash
     and the path fragment is uses the %%xx escape."""
+    print prefix, paths
     if prefix.endswith("/"):
-        prefix = prefix[-1]
+        prefix = prefix[0:-1]
     if paths:
         suffix = "/".join(paths)
         if suffix.startswith("/"):

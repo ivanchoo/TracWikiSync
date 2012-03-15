@@ -19,16 +19,16 @@
     <div id="wikisync" class="wikisync" py:choose="">
       <py:when test="not remote_url">
       	<h1>Wiki Synchronization</h1>
-				<p class="center">No remote server configuration found. Configure the remote server <a href="${req.href.admin('general', 'wikisync')}">here</a>.</p>
+				<p class="center">
+				  No remote server configuration found. 
+				  Configure the remote server <a href="${req.href.admin('general', 'wikisync')}">here</a>.
+				</p>
       </py:when>
       <py:otherwise>
 				<form id="wikisync-form" method="post" class="wikisync-form">
 					<fieldset>
 						<legend>Wiki Synchronization</legend>
-						<fieldset style="float:right;">
-							<legend>Filter Wiki Name</legend>
-							<input type="text" value="" id="filter-text" placeholder="'Keyword' or '^Regular.*Expression$'" style="width:240px" />
-						</fieldset>
+						<p>Select the various type of status to display:</p>
 						<ul class="wikisync-form-list">
 							<li class="modified">
 								<label for="filter-modified" class="selected">
@@ -82,6 +82,12 @@
 									<input id="filter-ignored" type="checkbox" value="ignored" class="filter"  />
 									<i class="status">IGNORED</i> pages are simply ignored
 								</label>
+							</li>
+							<li>
+							  <label for="filter-text" style="padding-left:22px">
+    							<input type="text" value="" id="filter-text" placeholder="Filter page name by 'Keyword' or '^Reg.*Exp$'" style="width:300px" />
+		    					<input type="reset" value="Clear" id="filter-text-reset" />
+		    			  </label>
 							</li>
 							<li>
 								<p class="action">
