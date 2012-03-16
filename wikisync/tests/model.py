@@ -33,7 +33,7 @@ class WikiSyncModelTestCase(unittest.TestCase):
     def test_validate(self):
         item = self.dao.factory()
         self.assertRaises(AssertionError, item.validate)
-        item.merge(name="Test").validate()
+        item.replace(name="Test").validate()
 
     def test_read(self):
         item = self.dao.find("Test1")
@@ -57,14 +57,14 @@ class WikiSyncModelTestCase(unittest.TestCase):
         self.assertEqual(results[0], (u'Test2', 2))
 
     def test_delete(self):
-        item = self.dao.find("Test1") 
+        item = self.dao.find("Test1")
         self.assertTrue(item is not None)
         self.dao.delete(item)
         self.assertTrue(self.dao.find("Test1") is None)
         
     def test_update(self):
         item = self.dao.find("Test1")
-        item = item.merge(sync_remote_version=1, remote_version=11)
+        item = item.replace(sync_remote_version=1, remote_version=11)
         self.dao.update(item)
         db = self.env.get_read_db()
         cursor = db.cursor()

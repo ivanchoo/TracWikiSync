@@ -1,75 +1,42 @@
-.wikisync .conflict {
-	background-image: url('images/status-conflict.png');
-}
-.wikisync .ignored {
-	background-image: url('images/status-ignored.png');
-}
-.wikisync .missing {
-	background-image: url('images/status-missing.png');
-}
-.wikisync .modified {
-	background-image: url('images/status-modified.png');
-}
-.wikisync .new {
-	background-image: url('images/status-new.png');
-}
-.wikisync .outdated {
-	background-image: url('images/status-outdated.png');
-}
-.wikisync .synced {
-	background-image: url('images/status-synced.png');
-}
-.wikisync .unknown {
-	background-image: url('images/status-unknown.png');
-}
-.wikisync li {
-	list-style: none;
-	padding-left: 68px;
-	background-repeat: no-repeat;
-	background-position: left center;
-	line-height: 1.4em;
-	overflow: hidden;
-}
-.wikisync i {
-	color: #999;
-}
-.wikisync .nested {
-	margin-left: -80px;
-}
-.wikisync .controls {
-	display: none;
-	float: right;
-	padding-right: 12px;
-}
-.wikisync .hover {
-	background-color: #FFFFBF;
-}
-.wikisync .hover > .item-wrapper > .controls {
-	display: inline;
-}
-.wikisync .unignore-item {
-	display: none;
-}
-.wikisync .ignored .unignore-item {
-	display: inline;
-}
-.wikisync .ignored .ignore-item {
-	display: none;
-}
-.wikisync label.modified {
-	background-image: none;
-	color: #000EC4;
-}
-.wikisync label.outdated {
-	background-image: none;
-	color: #5000C4;
-}
-.wikisync .progress {
-	display: none;
-}
-.wikisync-progress .action {
-	display: none;
-}
-.wikisync-progress .progress {
-	display: block;
-}
+.wikisync{}.wikisync i{color:#999999;}
+.wikisync .center{text-align:center;}
+.wikisync .indicate{cursor:help;border-bottom:1px dotted #bbbbbb;}
+.wikisync .ignore{display:inline;}
+.wikisync .unignore{display:none;}
+.wikisync .ignored .unignore{display:inline;}
+.wikisync .ignored .ignore{display:none;}
+.wikisync .hover{background-color:#FFFFBF;}
+.wikisync .hint{font-weight:normal;color:#999999;}
+.wikisync label{color:#999999;}
+.wikisync label.selected{color:#000;}
+.wikisync .status{background-repeat:no-repeat;background-position:center center;min-width:64px;text-indent:-1000px;text-align:left;display:inline-block;overflow:hidden;}
+.wikisync .status-badge{background-repeat:no-repeat;background-position:center center;min-width:120px;text-indent:-1000px;text-align:left;display:inline-block;overflow:hidden;}
+.wikisync .conflict .status{background-image:url('images/status-conflict.png');}
+.wikisync .ignored .status{background-image:url('images/status-ignored.png');}
+.wikisync .missing .status{background-image:url('images/status-missing.png');}
+.wikisync .modified .status{background-image:url('images/status-modified.png');}
+.wikisync .new .status{background-image:url('images/status-new.png');}
+.wikisync .outdated .status{background-image:url('images/status-outdated.png');}
+.wikisync .synced .status{background-image:url('images/status-synced.png');}
+.wikisync .unknown .status{background-image:url('images/status-unknown.png');}
+.wikisync .progress .status{background-image:url('images/loading.gif') !important;}
+.wikisync .conflict .status-badge{background-image:url('images/status-conflict-big.png');}
+.wikisync .ignored .status-badge{background-image:url('images/status-ignored-big.png');}
+.wikisync .missing .status-badge{background-image:url('images/status-missing-big.png');}
+.wikisync .modified .status-badge{background-image:url('images/status-modified-big.png');}
+.wikisync .new .status-badge{background-image:url('images/status-new-big.png');}
+.wikisync .outdated .status-badge{background-image:url('images/status-outdated-big.png');}
+.wikisync .synced .status-badge{background-image:url('images/status-synced-big.png');}
+.wikisync .unknown .status-badge{background-image:url('images/status-unknown-big.png');}
+.wikisync .progress .status-badge{background-image:url('images/loading.gif') !important;}
+.wikisync .wikisync-list{padding:0;margin:0 0 12px 0;}.wikisync .wikisync-list ul,.wikisync .wikisync-list li,.wikisync .wikisync-list p{padding:0;margin:0;list-style:none;}
+.wikisync .wikisync-list p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:26px;line-height:26px;}
+.wikisync .wikisync-list .controls{display:none;float:right;width:200px;margin-left:12px;}
+.wikisync .wikisync-list .hover>.controls{display:inline-block;}
+.wikisync .wikisync-list .indent{padding-left:68px;}
+.wikisync .wikisync-list .error{color:#c00;font-style:italic;}
+.wikisync .wikisync-form ul,.wikisync .wikisync-form li{list-style:none;}
+.wikisync-modal{position:absolute;z-index:888;top:0;bottom:0;left:0;right:0;}.wikisync-modal .wikisync-modal-overlay{filter:alpha(opacity=10);-moz-opacity:0.1;-khtml-opacity:0.1;opacity:0.1;background-color:#000;width:100%;height:100%;}
+.wikisync-modal .wikisync-modal-panel{position:absolute;background-color:#F7F7F0;border:1px outset #998;padding:12px;top:60px;left:30px;right:30px;}.wikisync-modal .wikisync-modal-panel textarea{width:100%;height:300px;margin:0;}
+.wikisync-panel{position:absolute;background-color:#F7F7F0;border:1px outset #998;padding:12px;width:260px;z-index:100;right:10px;top:10px;text-align:center;}.wikisync-panel .close{position:absolute;top:4px;right:8px;}
+.wikisync-panel .last-synced{font-style:italic;font-size:smaller;text-align:center;color:#999999;}

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-import zlib, base64, md5, os, tempfile, cookielib, urllib2, \
+import zlib, base64, os, tempfile, cookielib, urllib2, \
     urllib, itertools, re
+from hashlib import md5
 from StringIO import StringIO
 from genshi.input import HTMLParser
 from urlparse import urlparse, parse_qs
@@ -12,8 +13,22 @@ except ImportError:
 def jsonify(obj):
     """Returns a jsonified string"""
     return json.dumps(obj)
-        
-def safe_unicode(obj, encoding='utf-8'):
+
+def safe_url(prefix, *paths):
+    """Safely encode a url path, ensuring the prefix has no tailing slash
+    and the path fragment is uses the %%xx escape."""
+    print prefix, paths
+    if prefix.endswith("/"):
+        prefix = prefix[0:-1]
+    if paths:
+        suffix = "/".join(paths)
+        if suffix.startswith("/"):
+            suffix = suffix[1:]
+        return "%s/%s" % (prefix, urllib.quote(suffix.encode("utf-8")))
+    return host
+    
+def safe_unicode(obj, encoding="utf-8"):
+    """Returns a unicode object, suppressing all errors"""
     t = type(obj)
     if t is unicode:
         return obj
@@ -28,6 +43,7 @@ def safe_unicode(obj, encoding='utf-8'):
             return str(obj).decode(encoding)
     
 def safe_str(obj, encoding="utf-8"):
+    """Returns a string object, suppressing all errors"""
     if isinstance(obj, unicode):
         return obj.encode(encoding)
     elif isinstance(obj, str):
@@ -38,17 +54,21 @@ def safe_str(obj, encoding="utf-8"):
         return str(obj)
 
 def safe_int(value):
+    """Returns an int object, suppressing all errors, default to 0"""
     try:
         return int(value)
     except:
         return 0
         
 def str_mask(message):
+    """Masks a string to make it unreadable.
+    This is not to be used as a mean of encryption"""
     assert isinstance(message, basestring) and len(message), \
         "Expect string, got '%s'" % message
     return base64.b64encode(zlib.compress(message))
 
 def str_unmask(masked):
+    """Opposite of str_mask()"""
     assert isinstance(masked, basestring) and len(masked), \
         "Expect string, got '%s'" % masked
     try:
@@ -57,12 +77,22 @@ def str_unmask(masked):
         raise ValueError("Unable to unmask string: %s" % e)
 
 def safe_urlencode(data):
+    """Returns an url encoded string, safely handles string encodings"""
     safe = {}
     for k, v in data.items():
         safe[safe_str(k)] = safe_str(v)
     return urllib.urlencode(safe)
+
+def server_name(url):
+    """Returns a readable server name"""
+    info = urlparse(url)
+    name = info.hostname
+    if info.port and info.port not in (80, 443):
+        name = "%s:%s" % (name, info.port)
+    return name
     
 def parse_form_params(source, form_id=None, exclude=None):
+    """Returns the values of a HTML form in a dict"""
     if isinstance(source, basestring):
         f = StringIO(source)
     elif hasattr(source, "read"):
@@ -106,18 +136,24 @@ def parse_form_params(source, form_id=None, exclude=None):
     return params
     
 def parse_recent_changes(source, path_prefix="/wiki"):
+    """Parses the 'RecentChanges' HTML source and return an array of dict
+    containing the wiki 'name' and 'remote_version'"""
     return _parse_html_version_links(source, 
         lambda data: data[1].get("id", None) == "wikipage", 
         path_prefix
     )
 
 def parse_timeline(source, path_prefix="/wiki"):
+    """Parses the 'Timeline' HTML source and return an array of dict
+    containing the wiki 'name' and 'remote_version'"""
     return _parse_html_version_links(source, 
         lambda data: data[1].get("id", None) == "content", 
         path_prefix
     )
 
 def parse_wiki(source, path_prefix="/wiki"):
+    """Parses a wiki pageit HTML source and return an array of dict
+    containing the wiki 'name' and 'remote_version'"""
     return _parse_html_version_links(source, 
         lambda data: data[1].get("class", None) == "trac-modifiedby", 
         path_prefix
@@ -149,7 +185,7 @@ def _parse_html_version_links(source, check_data, path_prefix):
                     path = safe_unicode(
                         urllib.unquote(
                             safe_str(url.path[path_prefix_len:])
-                        ).decode('utf-8')
+                        ).decode("utf-8")
                     )
                     if path in map:
                         item = map[path]
@@ -171,20 +207,21 @@ def _parse_html_version_links(source, check_data, path_prefix):
                 break
     return map.values()
 
-class WikiSyncIgnoreFilter(object):
-
+class RegExpFilter(object):
+    """Helper class to match a string to multiple regular expressions."""
+    
     def __init__(self, filters):
         if isinstance(filters, basestring):
             filters = filters.split()
-        self._regex = [re.compile(f) for f in filters]
+        self._regexes = filters and [re.compile(f) for f in filters] or []
     
-    def ignore(self, name):
-        for r in self._regex:
+    def matches(self, name):
+        for r in self._regexes:
             if r.match(name):
                 return True
         return False
         
-class WikiSyncRpc(object):
+class WebClient(object):
 
     def __init__(self, baseurl, username=None, password=None, debug=False):
         assert isinstance(baseurl, basestring) and len(baseurl), \
@@ -199,26 +236,33 @@ class WikiSyncRpc(object):
         self._opener = None
         self._authenticated = False
     
-    def open(self, path, data=None):
+    def open(self, path, data=None, method="GET"):
         self.authenticate()
-        req = urllib2.Request(self.url(path))
+        url = self.url(path)
+        qs = data and safe_urlencode(data) or None
         try:
-            if data:
-                data = safe_urlencode(data)
-            return self.opener().open(req, data)
-        except HTTPError, e:
+            if qs and method == "GET":
+                url = "%s?%s" % (url, qs)
+                qs = None
+            req = urllib2.Request(url)
+            return self.opener().open(req, qs)
+        except urllib2.HTTPError, e:
             if e.code in (401,):
                 self.authenticate()
                 return self.opener().open(req, data)
+            else:
+                raise e
                 
-    def opener(self):
+    def opener(self, no_cache=False):
         if not self._opener:
-            m = md5.new()
+            m = md5()
             m.update(self.baseurl)
             m.update(self.username or "username")
             m.update(self.password or "password")
             hash = m.hexdigest()
             cookie_file = os.path.join(tempfile.gettempdir(), hash)
+            if no_cache and os.path.isfile(cookie_file):
+                os.remove(cookie_file)
             has_cookie = os.path.isfile(cookie_file)
             cookie_jar = cookielib.LWPCookieJar(cookie_file)
             handlers = [urllib2.HTTPCookieProcessor(cookie_jar)]
@@ -243,7 +287,12 @@ class WikiSyncRpc(object):
         self.save_cookie()
         self._cookie_jar = None
         self._opener = None
-
+    
+    def test(self):
+        self.close()
+        self.opener(no_cache=True)
+        return self.open("wiki")
+        
     def authenticate(self):
         opener = self.opener()
         if self._require_authentication:
@@ -260,10 +309,8 @@ class WikiSyncRpc(object):
             self._cookie_jar.save(ignore_discard=True)
 
     def url(self, path=""):
-        if path.startswith("/"):
-            path = path[1:]
-        return "%s/%s" % (self.baseurl, path)
-    
+        return safe_url(self.baseurl, path)
+        
     def basepath(self, path=""):
         return urlparse(self.url(path)).path
     
@@ -275,32 +322,34 @@ class WikiSyncRpc(object):
         data = {
             "wiki": "on",
         }
-        url = "timeline?%s" % safe_urlencode(data)
         return parse_timeline(
-            self.open(url), self.basepath("wiki"))
+            self.open("timeline", data, "GET"), self.basepath("wiki"))
     
     def get_remote_version(self, name):
         return parse_wiki(
             self.open("wiki/%s" % name), self.basepath("wiki"))
         
-    def pull_wiki(self, name, version=None):
-        path = "wiki/%s?format=txt" % name
+    def pull(self, name, version=None):
+        data = { "format":"txt" }
         if version:
-            path = "%s&version=%s" % (path, version)
-        f = self.open(path)
+            data["version"] = version
+        f = self.open("wiki/%s" % name, data, "GET")
         return safe_unicode(f.read())
     
-    def post_wiki(self, name, text, comments=None):
-        path = "wiki/%s?action=edit" % name
-        params = parse_form_params(self.open(path), 
-            form_id="edit", exclude=("cancel", "preview", "diff", "merge"))
+    def push(self, name, text, comments=None):
+        data = { "action":"edit" }
+        params = parse_form_params(
+            self.open("wiki/%s" % name, data, "GET"), 
+            form_id="edit", 
+            exclude=("cancel", "preview", "diff", "merge")
+        )
         if not params:
             raise RuntimeError("Cannot parse form parameters from '%s'" % \
                 self.url(path))
         params["text"] = text
         params["comment"] = self._format_comment(comments)
         info = parse_wiki(
-            self.open("wiki/%s" % name, params),
+            self.open("wiki/%s" % name, params, "POST"),
             self.basepath("wiki")
         )
         if not info:

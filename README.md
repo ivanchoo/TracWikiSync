@@ -1,53 +1,43 @@
 TracWikiSync
 ============
 
-This [Trac](http://trac.edgewall.org/) plugin allows you to synchronize wiki entries between to separate Trac installations. 
+This [Trac](http://trac.edgewall.org/) plugin allows you to synchronize wiki pages between to separate Trac installations. 
 
-Common use case is be to install a local Trac project on your workstation and synchronizing the wiki entires from your remote Trac server. This is especially useful when working over slow VPN connections and/or working offline, editing the wikies and doing batch synchronizing when you're ready to commit.
+A common use case is to install a local Trac project on your workstation and synchronize the wiki pages with your remote Trac server. This allows you to bring the wiki content offline, or edit the content locally before batch updating to the remote server (useful when working over slow Internet/VPN connections).
+
 
 Features
 ------------
 
- - Supports the following type of synchronization:
+ - Supports various type of synchronization states:
  
-  - `MODIFED`: Local wiki has been modified and will be pushed to the remote server 
+  - `MODIFED`: Local page has been modified and will be updated to the remote server 
   
-  - `NEW`: Local wiki is new and will be pushed to the remote server
+  - `NEW`: Local page is new and will be updated to the remote server
   
-  - `OUTDATED`: Remote wiki has been modified and will be pulled from the remote server
-  - `MISSING`: Remote wiki is missing and will be pulled from the remote server
+  - `OUTDATED`: Remote page has been modified and will be copied from the remote server
   
-  - `CONFLICT`: Both local and remote wiki has been modified, you can choose to either push to or pull from the remote server
+  - `MISSING`: Remote page exists and will be copied from the remote server
   
-  - `SYNCED`: Both local and remote wiki are identitical
+  - `CONFLICT`: Both local and remote pages have been modified, you can choose to either update to or copy from the remote server
   
-  - `IGNORED`: Ignored wikies will be skipped during synchronization
+  - `SYNCED`: Both local and remote pages are identitical
   
- - Uses standard `GET` and `POST` methods, no other plugins required
+  - `IGNORED`: Skip these pages during synchronization
+  
+ - Uses standard `GET` and `POST` methods for synchronization, no other Trac plugins required
  
- - Supports `BASIC`/`DIGEST` authentication on the remote server
+ - Supports `BASIC`/`DIGEST` authentication
  
  - Supports batch synchronization
 
 TODO
 ----
-
- - Fix GUI to solve screen lock ups and show better progress status
-
- - Implement quick filter for batch synchronization screen
- 
- - Implement refresh from last sync for faster status detection
- 
- - Implement single wiki synchronization
  
  - Implement attachment synchronization
- 
- - Implement IWikiChangeListener to catch deleted and renamed wiki changes
 
 Installation and Requirements
 -----------------------------
-
-TODO
 
 Minimum requirements:
 
@@ -55,24 +45,45 @@ Minimum requirements:
  
  - Python 2.6 >=
 
- - Enabling the plugin in `trac.ini`:<pre>
-[components]
-wikisync.* = enabled`
+Instructions:
+
+ 1. Install Trac (highly recommend using [virtualenvwrapper](http://www.doughellmann.com/projects/virtualenvwrapper/))<pre>
+$ pip install trac
+...
+$ pip install TracWikiSync.tar.gz
+</pre>
+ 
+ 2. Create a new Trac environment<pre>
+$ trac-admin /path/to/myproject initenv
+$ trac-admin /path/to/myproject permission add admin TRAC_ADMIN
+$ htdigest -c /path/to/myproject/.htpasswd myproject admin
+...
 </pre>
 
-Usage
------
+ 3. Enable the plugin by adding the following lines in `myproject/conf/trac.ini`<pre>
+[components]
+wikisync.* = enabled
+</pre>
+
+ 4. Upgrade the Trac environment<pre>
+$ trac-admin /path/to/myproject upgrade
+...
+</pre>
+
+ 5. Start Trac<pre>
+$ tracd --port=8080 \
+  --auth=*,/path/to/myproject/.htpasswd,myproject \
+  /path/to/myproject
+</pre>
+
+User Permissions
+----------------
 
 Trac users require the following permissions:
 
  - `TRAC_ADMIN`: To configure the remote server information in the admin panels
  
  - `WIKI_ADMIN`: To perform synchronization
-
-Develop
--------
-
-TODO
 
 Bugs
 ----

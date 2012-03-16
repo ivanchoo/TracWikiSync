@@ -1,0 +1,144 @@
+<div id="wikisync-panel" class="wikisync wikisync-panel" style="display:none" xmlns:py="http://genshi.edgewall.org/">
+  <?python
+from datetime import datetime
+from wikisync.util import jsonify, server_name, safe_urlencode, safe_url
+  ?>
+  
+  <!-- !Macro: renders a readable remote host name -->
+  <py:def function="remote_server">${server_name(remote_url)}</py:def>
+  
+  <!-- !Macro: renders a wiki version -->
+  <span py:def="local_wiki(use_name=False)" 
+  	title="Version ${model.local_version}" 
+  	class="indicate">
+    <py:if test="use_name">${model.name}</py:if><py:if test="not use_name">page</py:if></span>
+  
+  <!-- !Macro: renders the remote wiki link -->
+  <a py:def="remote_wiki" 
+  	class="ext-link" 
+  	href="${safe_url(remote_url, 'wiki', model.name)}" 
+  	title="Version ${model.remote_version}"
+  	target="_blank"><span class="icon">&nbsp;</span>${model.name}</a>
+  
+  <!-- !Macro: renders an 'or ignore' link -->
+  <py:def function="ignore_or_unignore">
+    <py:choose test="model.ignore">
+      <a py:when="1" href="${req.href.wikisync(name=model.name, action='resolve', status='unignore')}">Unignore</a>
+      <a py:otherwise="" href="${req.href.wikisync(name=model.name, action='resolve', status='ignore')}">Ignore</a>
+    </py:choose>
+  </py:def>
+
+  <!-- !Macro: Form template -->
+  <form py:match="wikisyncform" 
+  	action="${req.href.wikisync()}" 
+  	method="POST" 
+  	class="center"
+  	py:attrs="select('@*')">
+	  <input type="hidden" name="name" value="${model.name}" />
+	  ${select('*|text()')}
+  </form>
+  
+  <!-- !Start rendering -->
+  
+  <a id="wikisync-panel-close" class="close" href="#">Close</a>
+  <h2 class="${model.status}"><i class="status-badge">${model.status.upper()}</i></h2>
+  
+  <py:choose test="model.status">
+    <!-- !synced -->
+    <py:when test="'synced'">
+			<p>This ${local_wiki()} is identical to ${remote_wiki()}.</p>
+			<wikisyncform>
+				<input type="hidden" name="action" value="refresh" />
+				<input type="submit" name="_" value="Check for updates" />
+				<i>or</i> ${ignore_or_unignore()}
+			</wikisyncform>
+    </py:when>
+    <!-- !modified -->
+    <py:when test="'modified'">
+			<p>This ${local_wiki()} was modified and is different from ${remote_wiki()}.</p>
+			<wikisyncform>
+				<input type="hidden" name="action" value="push" />
+				<input type="submit" name="_" value="Update to ${remote_server()}" />
+				<i>or</i> ${ignore_or_unignore()}
+			</wikisyncform>
+    </py:when>
+    <!-- !new -->
+    <py:when test="'new'">
+			<p>This wiki is not available at ${remote_wiki()}.</p>
+			<wikisyncform>
+				<input type="hidden" name="action" value="push" />
+				<input type="submit" name="_" value="Add to ${remote_server()}" />
+				<i>or</i> ${ignore_or_unignore()}
+			</wikisyncform>
+    </py:when>
+    <!-- !outdated -->
+    <py:when test="'outdated'">
+			<p>${remote_wiki()} was modified and is different from this ${local_wiki()}.</p>
+			<wikisyncform>
+				<input type="hidden" name="action" value="pull" />
+				<input type="submit" name="_" value="Copy from ${remote_server()}" />
+				<i>or</i> ${ignore_or_unignore()}
+			</wikisyncform>
+    </py:when>
+    <!-- !missing -->
+    <py:when test="'missing'">
+			<p>${remote_wiki()} is missing from this server.</p>
+			<wikisyncform>
+				<input type="hidden" name="action" value="pull" />
+				<input type="submit" name="_" value="Copy from ${remote_server()}" />
+				<i>or</i> ${ignore_or_unignore()}
+			</wikisyncform>
+    </py:when>
+    <!-- !conflict -->
+    <py:when test="'conflict'">
+			<p>Both this ${local_wiki()} and ${remote_wiki()} have been modified since
+			the last synchronization.</p>
+			<wikisyncform>
+			  <div style="text-align:left; display:inline-block">
+					<label for="wikisync-pull">
+						<input id="wikisync-pull" type="radio" name="action" value="pull" />
+						Copy from ${remote_server()}
+					</label>
+					<br />
+					<label for="wikisync-push">
+						<input id="wikisync-push" type="radio" name="action" value="push" />
+						Update to ${remote_server()}
+					</label>
+			  </div>
+			  <p>
+					<input type="submit" name="_" value="Resolve" />
+					<i>or</i> ${ignore_or_unignore()}
+				</p>
+			</wikisyncform>
+    </py:when>
+    <!-- !ignored -->
+    <py:when test="'ignored'">
+			<p>This ${local_wiki()} is ignored in the synchronization process.</p>
+			<p>You can ${ignore_or_unignore()} this page.</p>
+    </py:when>
+    <!-- !unknown -->
+    <py:otherwise>
+      <p>Unable to detect the synchronization status. This wiki may not exist at ${remote_wiki()}.</p>
+			<wikisyncform>
+				<input type="hidden" name="action" value="refresh" />
+				<input type="submit" name="_" value="Check for updates" />
+			</wikisyncform>
+    </py:otherwise>
+  </py:choose>
+  
+  <p py:if="model.sync_time" class="last-synced">
+    Last synced: ${datetime.fromtimestamp(model.sync_time).strftime("%Y-%m-%d %H:%M:%S")}
+  </p>
+  
+  <script type="text/javascript">
+		$(function() {
+			var ns = wikisync;
+			var app = new ns.WikiSyncPageView({
+				model: new ns.WikiSyncModel(
+					${Markup(jsonify(model))}, 
+					{ parse:true }
+				)
+			}).render();
+		});
+	</script>
+</div>
