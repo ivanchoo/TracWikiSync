@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="TracWikiSync",
-    version="0.1.0",
+    version="0.1",
     keywords="trac wiki sync synchronization",
     author="Ivan Choo",
     author_email="hello@ivanchoo.com",
