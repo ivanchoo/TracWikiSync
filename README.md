@@ -3,7 +3,7 @@ TracWikiSync
 
 This [Trac](http://trac.edgewall.org/) plugin allows you to synchronize wiki pages between to separate Trac installations. 
 
-A common use case is be to install a local Trac project on your workstation and synchronize the wiki pages with your remote Trac server. This allows you to bring the wiki content offline, or edit the content locally before batch updating to the remote server (useful when working over slow Internet/VPN connections).
+A common use case is to install a local Trac project on your workstation and synchronize the wiki pages with your remote Trac server. This allows you to bring the wiki content offline, or edit the content locally before batch updating to the remote server (useful when working over slow Internet/VPN connections).
 
 
 Features
@@ -19,7 +19,7 @@ Features
   
   - `MISSING`: Remote page exists and will be copied from the remote server
   
-  - `CONFLICT`: Both local and remote pages has been modified, you can choose to either update to or copy from the remote server
+  - `CONFLICT`: Both local and remote pages have been modified, you can choose to either update to or copy from the remote server
   
   - `SYNCED`: Both local and remote pages are identitical
   
@@ -62,7 +62,7 @@ $ htdigest -c /path/to/myproject/.htpasswd myproject admin
 
  3. Enable the plugin by adding the following lines in `myproject/conf/trac.ini`<pre>
 [components]
-wikisync.* = enabled`
+wikisync.* = enabled
 </pre>
 
  4. Upgrade the Trac environment<pre>
@@ -84,6 +84,9 @@ Trac users require the following permissions:
  - `TRAC_ADMIN`: To configure the remote server information in the admin panels
  
  - `WIKI_ADMIN`: To perform synchronization
+
+Bugs
+----
 
 Please use [Issues](https://github.com/ivanchoo/TracWikiSync/issues)
 
