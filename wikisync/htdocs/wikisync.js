@@ -54,6 +54,17 @@
 		'  <ul><%= nested %></ul>' +
 		'</li>';
 
+	var PROGRESS_PANEL_TEMPLATE = 
+		'<div id="wikisync-modal" class="wikisync-modal">' +
+		'	<div class="wikisync-modal-overlay">&nbsp;</div>' +
+		'	<div class="wikisync-modal-panel">' +
+		'		<h2>Synchronization in progress..</h2>' +
+		'		<p>Do not close this window during synchronization.</p>' +
+		'		<textarea></textarea>' +
+		'		<p style="text-align:right"><input type="button" value="Stop Synchronization" /></p>' +
+		'	</div>' +
+		'</div>';
+		
 	var SPLIT_NUMBER_REGEX = new RegExp('([0-9.]+)', 'g');
 	var SPLIT_REGEX = new RegExp('(/| |_)', 'g');
 	var SPLIT_CAMELCASE_REGEX = new RegExp('([a-z])([A-Z])(?=[a-z])');
@@ -167,6 +178,22 @@
 			return str.indexOf(c) >= 0;
 		}) != undefined;
 	}
+	
+   	var pad = function(n) {
+   		return n < 10 ? '0' + n : n;
+   	}
+    
+    var formatDate = function(dte) {
+    	if (_.isUndefined(dte)) {
+    		dte = new Date();
+    	}
+		return dte.getFullYear() + '-'
+			+ pad(dte.getMonth() + 1) + '-'
+			+ pad(dte.getDate()) + ' '
+			+ pad(dte.getHours()) + ':'
+			+ pad(dte.getMinutes()) + ':'
+			+ pad(dte.getSeconds());
+    }
     
     /* Represents a wiki synchronization state */
 	var WikiSyncModel = Backbone.Model.extend({
@@ -343,6 +370,7 @@
 	var WikiSyncView = Backbone.View.extend({
 		events: {
 			'click #wikisync-form input[type="submit"]': 'onSync',
+			'click #wikisync-modal input[type="button"]': 'onProgressClick',
 			'change #wikisync-form input.filter': 'onFilter',
 			'change #filter-conflict-resolve': 'onGlobalResolve',
 			'keydown #filter-text': 'onFilterTextChange',
@@ -363,7 +391,7 @@
 			this.$list = this.$('#wikisync-list');
 			this.$empty = this.$('#wikisync-empty');
 			this.collection.formToken = this.$form.find('input[name~=__FORM_TOKEN]').val();
-			this.collection.bind('all', this.onCollectionChange);
+			this.collection.bind('all', this.onCollectionEvent);
 		},
 		render: function() {
 			this.renderTree();
@@ -467,14 +495,15 @@
 			if (_.isUndefined(bool)) {
 				bool = !_.isArray(this.syncPending);
 			}
-			if (bool == _.isArray(this.syncPending)) return;
-			var $inputs = this.$('input,select');
+			if (bool == _.isArray(this.syncPending)) {
+				return this;
+			}
 			if (!bool) {
-				$inputs.removeAttr('disabled');
 				this.syncPending = null;
 			} else {
 				var collection = this.collection,
 					pending = [],
+					resolveConflict = this.resolveConflict,
 					$el, model;
 				this.$list.find('li').each(function() {
 					$el = $(this);
@@ -482,42 +511,43 @@
 						return true;
 					}
 					model = collection.getByCid($el.attr('id'));
-					if (!model) return true;
+					if (!model || (model.get('status') == 'conflict' && resolveConflict(model) == 'skip')) {
+						return true;
+					}
 					pending.push(model);
 				});
 				if (!pending.length) {
-					alert('No synchronization required!');
+					alert('Nothing to synchronize! Please edit your filter options.');
 				} else {
-					$inputs.attr('disabled', 'disabled');
 					this.syncPending = pending;
-					this.errorCount = 0;
 					this.syncNext();
 				}
 			}
 			return this;
 		},
 		syncNext: function() {
-			if (this.errorCount > 5) {
-				alert('Synchronization is interrupted as too many error has occurred');
-				this.sync(false);
-				return;
-			}
 			var model = this.syncPending ? this.syncPending.shift() : null;
 			if (!model) {
-				this.sync(false);
-				alert('Synchronization complete');
+				this.syncPending = null;
+				return false;
 			} else {
 				var resolveAs;
 				if (model.get('status') == 'conflict') {
 					resolveAs = $('#filter-conflict-resolve').val() || model.get('resolve');
 					if (resolveAs == 'skip') {
 						this.syncNext();
-						return;
+						return this;
 					}
 				}
 				this.collection.sync(model, resolveAs);
+				return model;
 			}
-			return this;
+		},
+		resolveConflict: function(model) {
+			if (model.get('status') == 'conflict') {
+				return $('#filter-conflict-resolve').val() || model.get('resolve');
+			}
+			return 'skip';
 		},
 		updateResolveInput: function(model, value, disabled) {
 			var $input,
@@ -541,14 +571,14 @@
 			});
 			return this;
 		},
-		renderPendingModels: function() {
-			if (!this.renderPending) return this;
-			if (this.renderPending.length > 30) {
+		updateChangedModels: function() {
+			if (!this.changedModels) return this;
+			if (this.changedModels.length > 30) {
 				/* cheaper to just redraw everything */
-				this.renderTree(true, this.renderPending);
+				this.renderTree(true, this.changedModels);
 			} else {
 				var model, $el, $new;
-				_.each(this.renderPending, function(model) {
+				_.each(this.changedModels, function(model) {
 					var $el = this.$('#' + model.cid);
 					if ($el.length) {
 						var $new = $(this.formatTreeNode(model)).hide();
@@ -557,29 +587,93 @@
 					}
 				}, this);
 			}
-			this.renderPending = null;
+			this.changedModels = null;
 			return this;
 		},
-		onCollectionChange: function(type, model, status, action) {
+		progressHandler: function(state, model, action) {
+			if (!this.syncPending) return;
+			var complete = false,
+				message, alertMessage;
+			if (!this.$progress) {
+				this.$progress = $(PROGRESS_PANEL_TEMPLATE).appendTo(this.$el);
+				this.errorCount = 0;
+				this.$el.css({ overflow:'hidden' });
+			}
+			if (state == 'error') {
+				this.errorCount++;
+				message = 'ERROR: ' + model.get('name') + ' cannot be sync due to the following reason:\n' +
+					'    "' + model.get('error') + '".';
+				if (this.errorCount > 5) {
+					alertMessage = 'Synchronization is interrupted as too many error has occurred.';
+					this.sync(false);
+					complete = true;
+				}
+			} else if (state == 'success') {
+				message = model.get('name');
+				switch(action) {
+					case 'push':
+						message += ' is updated to ' + this.options.remoteServer + '.';
+						break;
+					case 'pull':
+						message += ' is copied from ' + this.options.remoteServer + '.';
+						break
+					case 'refresh':
+						message += ' current status is now "' + model.get('status').toUpperCase() + '".';
+						break;
+					default:
+						message += ' is successfully synced.';
+				}
+			} else if (state == 'interrupt') {
+				complete = true;
+				this.sync(false);
+				message = 'Interrupted';
+			} else {
+				return this;
+			}
+			
+			if (!complete && !this.syncNext()) {
+				alertMessage = 'Synchronization complete.';
+				this.sync(false);
+				complete = true;
+			}
+			if (complete) {
+				this.$progress.find('input[type="button"]').val('Close');
+			}
+			if (alertMessage) {
+				_.defer(function() {
+					alert(alertMessage);
+				});
+			}
+			if (message) {
+				message = '[' + formatDate() + '] ' + message;
+				if (alertMessage) {
+					message += '\n[' + formatDate() + '] ' + alertMessage;
+				}
+				var $textarea = this.$progress.find('textarea');
+				$textarea.val($textarea.val() + message + '\n');
+				$textarea.attr('scrollTop', $textarea.attr('scrollHeight'));
+			}
+			return this;
+		},
+		onCollectionEvent: function(type, model, status, action) {
 			if (type == 'change') {
-				if (!this.renderPending) {
-					this.renderPending = [model];
-					_.defer(this.renderPendingModels);
+				if (!this.changedModels) {
+					this.changedModels = [model];
+					_.defer(this.updateChangedModels);
 				} else {
-					this.renderPending.push(model);
+					this.changedModels.push(model);
 				}
 				return;
 			}
-			var $el = model && model.cid ? this.$('#' + model.cid) : null;
 			if (type == 'progress') {
+				var $el = model && model.cid ? this.$('#' + model.cid) : null;
 				$el.addClass('progress');
+				this.progressHandler('progress', model, action);
 			} else if (type == 'complete') {
-				$el.removeClass('progress');
 				if (status != 'success') {
-					this.errorCount++;
-				}
-				if (this.syncPending) {
-					this.syncNext();
+					this.progressHandler('error', model, action);
+				} else {
+					this.progressHandler('success', model, action);
 				}
 			}
 		},
@@ -716,6 +810,17 @@
 				this.collection.ignore(models, isIgnore);
 			} else {
 				alert('All pages are already ' + verb);
+			}
+		},
+		onProgressClick: function(evt) {
+			if (this.syncPending) {
+				this.progressHandler('interrupt');
+			} else {
+				if (this.$progress) {
+					this.$progress.remove();
+					this.$progress = null;
+				}
+				this.$el.css({ overflow:'auto' });
 			}
 		}
 		

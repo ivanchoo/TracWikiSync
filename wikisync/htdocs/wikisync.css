@@ -36,5 +36,7 @@
 .wikisync .wikisync-list .indent{padding-left:68px;}
 .wikisync .wikisync-list .error{color:#c00;font-style:italic;}
 .wikisync .wikisync-form ul,.wikisync .wikisync-form li{list-style:none;}
+.wikisync-modal{position:absolute;z-index:888;top:0;bottom:0;left:0;right:0;}.wikisync-modal .wikisync-modal-overlay{filter:alpha(opacity=10);-moz-opacity:0.1;-khtml-opacity:0.1;opacity:0.1;background-color:#000;width:100%;height:100%;}
+.wikisync-modal .wikisync-modal-panel{position:absolute;background-color:#F7F7F0;border:1px outset #998;padding:12px;top:60px;left:30px;right:30px;}.wikisync-modal .wikisync-modal-panel textarea{width:100%;height:300px;margin:0;}
 .wikisync-panel{position:absolute;background-color:#F7F7F0;border:1px outset #998;padding:12px;width:260px;z-index:100;right:10px;top:10px;text-align:center;}.wikisync-panel .close{position:absolute;top:4px;right:8px;}
 .wikisync-panel .last-synced{font-style:italic;font-size:smaller;text-align:center;color:#999999;}
