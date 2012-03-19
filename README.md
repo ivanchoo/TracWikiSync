@@ -94,3 +94,6 @@ Version History
 ---------------
 
  - v0.1: Initial release.
+ - v0.2:
+  - Bugfix: UNKNOWN status is now correctly detected as NEW for new wiki
+  - Bugfix: Fixed NoneType pointer error when new wiki is created
