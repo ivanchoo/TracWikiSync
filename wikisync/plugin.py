@@ -324,7 +324,7 @@ class WikiSyncPlugin(Component, WikiSyncMixin):
             wc = self._get_web_client()
             if action == "refresh":
                 if names:
-                    for name in names:                        
+                    for name in names:
                         info = wc.get_remote_version(name)
                         item = dao.find(name)
                         if not item:
@@ -338,14 +338,18 @@ class WikiSyncPlugin(Component, WikiSyncMixin):
                                 item = dao.create(item)
                                 self.log.debug("Created '%s' wikisync" % name)
                         if info:
-                            if not item:
-                                item = dao.create(dao.factory(name=name))
                             info = info[0]
                             info["sync_time"] = time.time()
-                            item = item.replace(**info)
-                            dao.update(item)
+                            if item:
+                                item = dao.update(item.replace(**info))
+                            else:
+                                item = dao.create(dao.factory(**info))
                             self.log.debug("Updated '%s' wikisync info %s" % \
                                 (name, info))
+                        elif item:
+                            item = dao.update(
+                                item.replace(sync_time=time.time())
+                            )
                 else:
                     # update local and remote data
                     dao.sync_wiki_data()
