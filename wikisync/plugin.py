@@ -125,6 +125,13 @@ class WikiSyncEnvironment(Component, WikiSyncMixin):
         dao = WikiSyncDao(self.env)
         item = dao.find(page.name)
         if not item:
+            ignore_filter = RegExpFilter(
+                self._get_config("ignorelist")
+            )
+            item = dao.factory(
+                name=page.name,
+                ignore=ignore_filter.matches(page.name)
+            )
             dao.create(item)
             self.log.debug("Created wikisync '%s'" % item.name)
 
