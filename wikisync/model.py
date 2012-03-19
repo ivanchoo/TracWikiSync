@@ -173,6 +173,7 @@ class WikiSyncDao(object):
                         item = item.replace(
                             remote_version=None,
                             sync_remote_version=None,
+                            sync_time=sync_time
                         )
                         self.update(item)
 

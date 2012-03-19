@@ -47,10 +47,10 @@ Minimum requirements:
 
 Instructions:
 
- 1. Install Trac (highly recommend using [virtualenvwrapper](http://www.doughellmann.com/projects/virtualenvwrapper/))<pre>
+ 1. Install Trac and the latest [TracWikiSync](https://github.com/ivanchoo/TracWikiSync/zipball/master) (highly recommend using [virtualenvwrapper](http://www.doughellmann.com/projects/virtualenvwrapper/))<pre>
 $ pip install trac
 ...
-$ pip install TracWikiSync.tar.gz
+$ pip install TracWikiSync-xxx.zip
 </pre>
  
  2. Create a new Trac environment<pre>
@@ -93,4 +93,7 @@ Please use [Issues](https://github.com/ivanchoo/TracWikiSync/issues)
 Version History
 ---------------
 
-TODO
+ - v0.1: Initial release.
+ - v0.2:
+  - Bugfix: UNKNOWN status is now correctly detected as NEW for new wiki
+  - Bugfix: Fixed NoneType pointer error when new wiki is created
