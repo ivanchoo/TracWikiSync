@@ -62,6 +62,11 @@ class WikiSync(namedtuple("WikiSync",
                 status = "modified"
             elif rv == srv and lv == slv:
                 status = "synced"
+            elif rv < srv or lv < slv:
+                # edge case, local wiki or remote wiki was deleted
+                # and re-added, causing the synced version to be higher
+                # we mark the status as conflict and prompt user to resolve it
+                status = "conflict"
         return o.status == status and o or o._replace(status=status)
     
     def validate(self):
