@@ -90,6 +90,11 @@ Bugs
 
 Please use [Issues](https://github.com/ivanchoo/TracWikiSync/issues)
 
+License
+-------
+
+See LICENSE
+
 Version History
 ---------------
 
@@ -97,3 +102,7 @@ Version History
  - v0.2:
   - Bugfix: UNKNOWN status is now correctly detected as NEW for new wiki
   - Bugfix: Fixed NoneType pointer error when new wiki is created
+ - v0.3:
+  - Added LICENSE (better late than never)
+  - Bugfix: Fixed edge case where local/remote wiki is deleted and re-added, causing the synced version to be higher than actual version. Such cases will be marked as conflict.
+  - Bugfix: Fixed bug where empty remote wiki page throws Invalid local_version exception.
