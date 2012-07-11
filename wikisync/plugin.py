@@ -370,6 +370,11 @@ class WikiSyncPlugin(Component, WikiSyncMixin):
                         wiki = WikiPage(self.env, item.name)
                         wiki.text = wc.pull(item.name,
                             item.remote_version)
+                        if not len(wiki.text) and not wiki.version:
+                            # BUGFIX: account for empy remote wiki Page,
+                            # which throws a Page not modified exception when
+                            # saving for the first time (default wiki.text = '')
+                            wiki.text = " "
                         try:
                             wiki.save(author, DEFAULT_SIGNATURE, addr)
                         except TracError, e:
